@@ -77,17 +77,17 @@
 %	BOOK INFORMATION
 %----------------------------------------------------------------------------------------
 
-\titlehead{The \texttt{kaobook} class}
-\subject{Use this document as a template}
+% \titlehead{The \texttt{kaobook} class}
+% \subject{Use this document as a template}
 
-\title[Example and documentation of the {\normalfont\texttt{kaobook}} class]{Example and documentation \\ of the {\normalfont\texttt{kaobook}} class}
-\subtitle{Customise this page according to your needs}
+\title[Distributed edge cloud architecture for executing AI based applications]{Distributed edge cloud architecture for executing AI based applications}
+% \subtitle{Customise this page according to your needs}
 
-\author[Federico Marotta]{Federico Marotta\thanks{A \LaTeX\ lover}}
+\author[Youssouph FAYE]{Youssouph FAYE\thanks{A \LaTeX\ lover}}
 
 \date{\today}
 
-\publishers{An Awesome Publisher}
+\publishers{Université Savoie Mont Blanc}
 
 %----------------------------------------------------------------------------------------
 
@@ -113,35 +113,35 @@
 %	COPYRIGHT PAGE
 %----------------------------------------------------------------------------------------
 
-\makeatletter
-\uppertitleback{\@titlehead} % Header
+% \makeatletter
+% \uppertitleback{\@titlehead} % Header
 
-\lowertitleback{
-	\textbf{Disclaimer}\\
-	You can edit this page to suit your needs. For instance, here we have a no copyright statement, a colophon and some other information. This page is based on the corresponding page of Ken Arroyo Ohori's thesis, with minimal changes.
+% \lowertitleback{
+% 	\textbf{Disclaimer}\\
+% 	You can edit this page to suit your needs. For instance, here we have a no copyright statement, a colophon and some other information. This page is based on the corresponding page of Ken Arroyo Ohori's thesis, with minimal changes.
 	
-	\medskip
+% 	\medskip
 	
-	\textbf{No copyright}\\
-	\cczero\ This book is released into the public domain using the CC0 code. To the extent possible under law, I waive all copyright and related or neighbouring rights to this work.
+% 	\textbf{No copyright}\\
+% 	\cczero\ This book is released into the public domain using the CC0 code. To the extent possible under law, I waive all copyright and related or neighbouring rights to this work.
 	
-	To view a copy of the CC0 code, visit: \\\url{http://creativecommons.org/publicdomain/zero/1.0/}
+% 	To view a copy of the CC0 code, visit: \\\url{http://creativecommons.org/publicdomain/zero/1.0/}
 	
-	\medskip
+% 	\medskip
 	
-	\textbf{Colophon} \\
-	This document was typeset with the help of \href{https://sourceforge.net/projects/koma-script/}{\KOMAScript} and \href{https://www.latex-project.org/}{\LaTeX} using the \href{https://github.com/fmarotta/kaobook/}{kaobook} class.
+% 	\textbf{Colophon} \\
+% 	This document was typeset with the help of \href{https://sourceforge.net/projects/koma-script/}{\KOMAScript} and \href{https://www.latex-project.org/}{\LaTeX} using the \href{https://github.com/fmarotta/kaobook/}{kaobook} class.
 	
-	The source code of this book is available at:\\\url{https://github.com/fmarotta/kaobook}
+% 	The source code of this book is available at:\\\url{https://github.com/fmarotta/kaobook}
 	
-	(You are welcome to contribute!)
+% 	(You are welcome to contribute!)
 	
-	\medskip
+% 	\medskip
 	
-	\textbf{Publisher} \\
-	First printed in May 2019 by \@publishers
-}
-\makeatother
+% 	\textbf{Publisher} \\
+% 	First printed in May 2019 by \@publishers
+% }
+% \makeatother
 
 %----------------------------------------------------------------------------------------
 %	DEDICATION
@@ -166,6 +166,9 @@
 
 \input{chapters/preface.tex}
 \index{preface}
+
+% \input{chapters/acknowledgments.tex}
+% \input{chapters/abstract.tex}
 
 %----------------------------------------------------------------------------------------
 %	TABLE OF CONTENTS & LIST OF FIGURES/TABLES
@@ -203,21 +206,11 @@
 
 \input{chapters/introduction.tex}
 
-\pagelayout{wide} % No margins
-\addpart{Class Options, Commands and Environments}
-\pagelayout{margin} % Restore margins
+\input{chapters/state-of-art.tex}
 
-\input{chapters/options.tex}
-\input{chapters/textnotes.tex}
-\input{chapters/figsntabs.tex}
-\input{chapters/references.tex}
+\input{chapters/self-balancing_architecture_for_live_video_analytics.tex}
 
-\pagelayout{wide} % No margins
-\addpart{Design and Additional Features}
-\pagelayout{margin} % Restore margins
-
-\input{chapters/layout.tex}
-\input{chapters/mathematics.tex}
+\input{chapters/efficient_model_cohabitation_in_edge_computing_model_serving.tex}
 
 \appendix % From here onwards, chapters are numbered with letters, as is the appendix convention
 

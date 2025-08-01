@@ -2,189 +2,57 @@
 \chapter{Introduction}
 \labch{intro}
 
-\section{The Main Ideas}
+\section{Motivation}
 
-Many modern printed textbooks have adopted a layout with prominent 
-margins where small figures, tables, remarks and just about everything 
-else can be displayed. Arguably, this layout helps to organise the 
-	discussion by separating the main text from the ancillary material, 
-	which at the same time is very close to the point in the text where 
-	it is referenced.
+% The rapid evolution of artificial intelligence over the past decade has transformed it from a research curiosity into a powerful force that is revolutionizing industries, societies, and our understanding of automation. This surge in AI applications, spanning domains such as video surveillance, healthcare diagnostics, autonomous systems, and real-time analytics, demands an infrastructure capable of handling vast computational workloads with speed and efficiency.
 
-This document does not aim to be an apology of wide margins, for there 
-are many better suited authors for this task; the purpose of all these 
-words is just to fill the space so that the reader can see how a book 
-written with the kaobook class looks like. Meanwhile, I shall also try 
-to illustrate the features of the class.
+% A significant contributor to this demand is the increasing deployment of cameras used for safety, security, and traffic control applications. These cameras generate a massive amount of video data, which, when transmitted to centralized clouds for processing, poses substantial challenges in terms of bandwidth overheads. The sheer volume of data required to be transmitted and processed not only strains network resources but also leads to increased latency, making real-time analytics and response increasingly difficult.
 
-The main ideas behind kaobook come from this 
-\href{https://3d.bk.tudelft.nl/ken/en/2016/04/17/a-1.5-column-layout-in-latex.html}{blog 
-	post}, and actually the name of the class is dedicated to the author 
-of the post, Ken Arroyo Ohori, which has kindly allowed me to create a 
-class based on his thesis. Therefore, if you want to know more reasons 
-to prefer a 1.5-column layout for your books, be sure to read his blog 
-post.
+% To address these challenges, there is a growing shift towards processing video streams at the edge, closer to where the data is generated. Edge devices, such as smart cameras and IoT devices, are being equipped with AI capabilities to analyze video streams in real-time, reducing the need for transmitting large volumes of data to centralized clouds. However, these edge devices typically have limited resources in terms of processing power, memory, and energy, posing significant constraints on the complexity and accuracy of AI models that can be deployed.
 
-Another source of inspiration, as you may have noticed, is the 
-\href{https://github.com/Tufte-LaTeX/tufte-latex}{Tufte-Latex Class}. 
-The fact that the design is similar is due to the fact that it is very 
-difficult to improve something which is already so good. However, I like 
-to think that this class is more flexible than Tufte-Latex. For 
-instance, I have tried to use only standard packages and to implement as 
-little as possible from scratch;\sidenote{This also means that 
-understanding and contributing to the class development is made easier. 
-Indeed, many things still need to be improved, so if you are interested, 
-check out the repository on github!} therefore, it should be pretty easy 
-to customise anything, provided that you read the documentation of the 
-package that provides that feature.
+% The need for efficient AI infrastructure is thus becoming increasingly critical, driving innovations in edge computing, specialized hardware accelerators, and optimized AI algorithms. These advancements aim to enable the efficient deployment of AI at the edge, ensuring that the benefits of real-time video analytics can be realized without compromising on performance or resource utilization. Furthermore, the proliferation of mobile cameras, such as those mounted on cars, drones, and other vehicles, presents new opportunities for expanding the scope of video analytics. Equipped with high-quality camera sensors, these mobile cameras can provide unique perspectives and insights, often being in the right place at the right time to capture critical events. Integrating them into existing architectures will support a range of analytics applications that interest camera owners, such as accident detection, crash analytics, and reconstruction. However, the dynamic nature of mobile cameras, which capture scenes that vary more rapidly than those from fixed cameras, introduces new challenges in terms of data processing and analytics, underscoring the need for adaptable and robust AI models that can effectively handle these complexities.
 
-In this book I shall illustrate the main features of the class and 
-provide information about how to use and change things. Let us get 
-started.
+% The integration of mobile cameras into video analytics systems presents several challenges, including the dynamic and unpredictable nature of the workload generated by these cameras. Specifically, the workload generated by mobile cameras is more dynamic and unpredictable, requiring constant adjustments to the processing infrastructure. Additionally, the continuously changing scenes captured by mobile cameras make customary processing pipelines ineffective, such as background subtraction, which works perfectly for fixed cameras but is ineffective for mobile cameras. Moreover, as mobile cameras appear and disappear from the deployment, they generate constant changes in the deployment configuration and the number of sources to process.
 
-\section{What This Class Does}
-\labsec{does}
+% As the scale and diversity of AI workloads grow, especially in video-centric environments, the challenge of distributing these workloads across available resources becomes increasingly important. We are entering a new era of workload distribution, where systems must adaptively allocate resources, balance latency constraints, and handle surges in demand. Effective workload distribution requires intelligent scheduling and resource awareness, taking into account the dynamic nature of mobile camera data and the need for real-time processing. By distributing workloads efficiently, systems can ensure that video analytics are performed in a timely and accurate manner, even in the presence of mobile cameras.
 
-The \Class{kaobook} class focuses more about the document structure than 
-about the style. Indeed, it is a well-known \LaTeX\xspace principle that 
-structure and style should be separated as much as possible (see also 
-\vrefsec{doesnot}). This means that this class will only provide 
-commands, environments and in general, the opportunity to do things, 
-which the user may or may not use. Actually, some stylistic matters are 
-embedded in the class, but the user is able to customise them with ease.
+% In addition, the growing need to integrate AI functionality into edge devices and resource-constrained environments introduces additional challenges. In such contexts, colocating multiple AI models on shared hardware is often necessary to meet performance expectations. However, colocation introduces its own set of concerns, including resource contention, model interference, and degradation in quality-of-service metrics. The limited resources of edge devices make it essential to optimize the deployment of AI models, taking into account the risk of interference and conflicts between models.
 
-The main features are the following:
+% In this context, the use of specialized hardware accelerators such as graphics processing units (GPUs) can play a crucial role. Initially designed for complex graphics rendering in video games, the use of GPUs has become indispensable in modern AI systems. Their highly parallel architecture enables them to process massive datasets and run deep learning algorithms far more efficiently than traditional Central Processing Units (CPUs). Unlike CPUs, which excel in sequential task execution, GPUs can simultaneously execute thousands of threads making them particularly well-suited for training and inference workloads common in machine learning and deep neural networks (DNNs). Frameworks like Compute Unified Device Architecture (CUDA) and Open Computing Language (OpenCL) have further enhanced GPU utility by offering granular control over kernel execution, memory access, and thread parallelism. These APIs translate raw GPU power into scalable and optimized model deployment pipelines. CUDA, in particular, has become the de facto standard for programming NVIDIA GPUs, allowing researchers and engineers to harness low-level optimization capabilities and unlock breakthrough AI performance.
 
-\begin{description}
-	\item[Page Layout] The text width is reduced to improve readability 
-	and make space for the margins, where any sort of elements can be 
-	displayed.
-	\item[Chapter Headings] As opposed to Tufte-Latex, we provide a 
-	variety of chapter headings among which to choose; examples will be 
-	seen in later chapters.
-	\item[Page Headers] They span the whole page, margins included, and, 
-	in twoside mode, display alternatively the chapter and the section 
-	name.\sidenote[][-2mm]{This is another departure from Tufte's 
-	design.}
-	\item[Matters] The commands \Command{frontmatter}, 
-	\Command{mainmatter} and \Command{backmatter} have been redefined in 
-	order to have automatically wide margins in the main matter, and 
-	narrow margins in the front and back matters. However, the page 
-	style can be changed at any moment, even in the middle of the 
-	document.
-	\item[Margin text] We provide commands \Command{sidenote} and 
-	\Command{marginnote} to put text in the 
-	margins.\sidenote[][-2mm]{Sidenotes (like this!) are numbered while 
-	marginnotes are not}
-	\item[Margin figs/tabs] A couple of useful environments is 
-	\Environment{marginfigure} and \Environment{margintable}, which, not 
-	surprisingly, allow you to put figures and tables in the margins 
-	(\cfr \reffig{marginmonalisa}).
-	\item[Margin toc] Finally, since we have wide margins, why don't add 
-	a little table of contents in them? See \Command{margintoc} for 
-	that.
-	\item[Hyperref] \Package{hyperref} is loaded and by default we try 
-	to add bookmarks in a sensible way; in particular, the bookmarks 
-	levels are automatically reset at \Command{appendix} and 
-	\Command{backmatter}. Moreover, we also provide a small package to 
-	ease the hyperreferencing of other parts of the text.
-	\item[Bibliography] We want the reader to be able to know what has 
-	been cited without having to go to the end of the document every 
-	time, so citations go in the margins as well as at the end, as in 
-	Tufte-Latex. Unlike that class, however, you are free to customise 
-	the citations as you wish.
-\end{description}
+% To fully harness the potential of GPUs, it is essential to understand the underlying structure of these devices, including kernel scheduling and resource constraints. GPUs consist of multiple streaming multiprocessors, each with its own set of processing cores, registers, and shared memory. The efficient scheduling of GPU resources requires careful consideration of these constraints, including the management of register allocation, shared memory access, and warp scheduling. By optimizing GPU resource allocation and scheduling, it is possible to maximize the performance of AI workloads and ensure efficient processing of video analytics.
 
-\begin{marginfigure}[-5.5cm]
-	\includegraphics{monalisa}
-	\caption[The Mona Lisa]{The Mona Lisa.\\ 
-	\url{https://commons.wikimedia.org/wiki/File:Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg}}
-	\labfig{marginmonalisa}
-\end{marginfigure}
+% Effective GPU scheduling in edge devices requires a deep understanding of the interplay between model characteristics, resource constraints, and performance objectives. This includes considering factors such as model complexity, input data rates, and latency requirements, as well as the available GPU resources, such as processing cores, memory, and bandwidth. By carefully balancing these factors, it is possible to develop scheduling strategies that optimize GPU utilization, minimize latency, and ensure efficient processing of video analytics workloads, even in power-constrained edge environments. Additionally, techniques such as dynamic voltage and frequency scaling, and power gating, can be employed to further optimize power consumption and performance.
 
-The order of the title pages, table of contents and preface can be 
-easily changed, as in any \LaTeX\ document. In addition, the class is 
-based on \KOMAScript's \Class{scrbook}, therefore it inherits all the 
-goodies of that.
 
-\section{What This Class Does Not Do}
-\labsec{doesnot}
+% ---
 
-As anticipated, further customisation of the book is left to the user. 
-Indeed, every book may have sidenotes, margin figures and so on, but 
-each book will have its own fonts, toc style, special environments and 
-so on. For this reason, in addition to the class, we provide only 
-sensible defaults, but if these features are not needed, they can be 
-left out. These special packages are located in the \Path{style} 
-directory, which is organised as follows:
+% Edge computing is a transformative approach that brings computation and data storage closer to the data source, reducing latency and bandwidth usage. This proximity to the data source makes edge computing ideal for a wide range of applications, particularly those that require real-time processing and low latency, such as video analytics. Video analytics can be efficiently represented as pipelines of functions, where each function is an advanced algorithm or AI model that processes data and passes it to the next function, forming a Directed Acyclic Graph (DAG). This modular approach allows for scalable and flexible processing. However, deploying multiple models on the same device can lead to interference and degraded performance. Therefore, smartly distributing these models across available resources, taking into account their computational requirements and dependencies, can significantly enhance overall system performance and efficiency.
 
-\begin{description}
-	\item[kao.sty] This package contains the most important definitions 
-	of macros and specifications of page layout. It is the heart of the 
-	\Class{kaobook}.
-	\item[kaobiblio.sty] Contains commands to add citations and 
-	customise the bibliography.
-	\item[packages.sty] Loads additional packages to decorate the 
-	writing with special contents (for instance, the \Package{listing} 
-	package is loaded here as it is not required in every book). There 
-	are also defined some useful commands to print the same words always 
-	in the same way, \eg latin words in italics or \Package{packages} in 
-	verbatim.
-	\item[kaorefs.sty] Some useful commands to manage labeling and 
-	referencing, again to ensure that the same elements are referenced 
-	always in a consistent way.
-	\item[environments.sty] Provides special environments, like boxes. 
-	Both simple and complex environments are available; by complex we 
-	mean that they are endowed with a counter, floating and can be put 
-	in a special table of contents.\sidenote[][-2mm]{See 
-	\vrefch{mathematics} for some examples.}
-	\item[theorems.sty] The style of mathematical environments. 
-	Actually, there are two such packages: one is for plain theorems,
-	\ie the theorems are printed in plain text; the other uses 
-	\Package{mdframed} to draw a box around theorems. You can plug the 
-	most appropriate style into its document.
-\end{description}
+The proliferation of video streams has revolutionized various fields, from navigation and security to control systems, by providing an indispensable source of information. However, the exponential growth in data volume has made cloud-based processing increasingly impractical due to bandwidth latency and dependence on centralized resources. This has driven a shift towards edge computing, which brings processing closer to the data source. While edge computing offers numerous benefits, it also presents unique challenges, particularly in terms of resource constraints. Even with powerful GPUs, resources are not unlimited, compelling us to rethink traditional deployment strategies.
 
-\marginnote[2mm]{The audacious users might feel tempted to edit some of 
-these packages. I'd be immensely happy if they sent me examples of what 
-they have been able to do!}
+One effective approach to optimize resource utilization in edge computing is to decouple the processing pipeline into multiple functions. In live video analytics, for example, each function can process data and send results to the next stage in the pipeline. However, existing solutions often deploy the entire pipeline on a single device or split it across resources without adequately considering the interference that co-deployed models can have on each other's performance. This interference can lead to reduced efficiency and increased latency. To address this, we need to recognize and measure the interference between co-deployed models before deploying them on a target resource. By doing so, we can strategically deploy functions across available resources, maximizing the efficiency of edge devices. However, this requires a good understanding of how the GPU execution model works during inference.
 
-In the rest of the book, I shall assume that the reader is not a novice 
-in the use of \LaTeX, and refer to the documentation of the packages 
-used in this class for things that are already explained there. 
-Moreover, I assume that the reader is willing to make minor edits to the 
-provided packages for styles, environments and commands, if he or she 
-does not like the default settings.
+Such an understanding hinges on grasping the internal mechanics of GPU architecture. Designed to manage intensive workloads, GPUs rely on a highly parallel structure made up of multiple streaming multiprocessors, each with its own set of processing cores, registers, and shared memory. This configuration enables GPUs to excel at the training and inference tasks central to machine learning and deep neural networks (DNNs). Frameworks like Compute Unified Device Architecture (CUDA) and Open Computing Language (OpenCL) have enhanced GPU utility by offering granular control over kernel execution, memory access, and thread parallelism. CUDA, in particular, has become the standard for programming NVIDIA GPUs, enabling researchers and engineers to harness low-level optimization capabilities and achieve breakthrough AI performance. However, understanding how kernels are scheduled and executed in the GPU during inference is crucial. Each model will eventually execute multiple kernels, and each kernel will require a certain amount of register allocation, shared memory access, and warps to execute efficiently. By optimizing these aspects, we can maximize the performance of AI workloads and ensure efficient processing of video analytics.
 
-\section{How to Use This Class}
+% Besides the challenges in GPU resource management, mobile cameras have become increasingly prevalent, offering several advantages in video analytics. Unlike fixed cameras, mobile cameras can capture diverse scenes and provide real-time data from various locations, making them ideal for applications such as traffic monitoring, autonomous vehicles, and drone surveillance. However, the rapid movement and changing environments of mobile cameras present unique challenges. The scenes captured by mobile cameras can vary more quickly than those from fixed cameras, leading to increased complexity in video analytics tasks. This dynamism requires adaptive and flexible processing strategies that can handle the unpredictable nature of mobile video streams. Additionally, the varying workload generated by mobile cameras can exacerbate the issue of uneven distribution and potential overloading of some nodes, leading to data loss and reduced accuracy.
+Beyond deployment complexities, the performance of video analytics systems is often constrained by fluctuating workloads from camera sources. These temporal imbalances in data generation can cause certain nodes to be overloaded while leaving others underutilized, potentially leading to data gaps and diminished analytical precision. To mitigate this, architects have explored distribution strategies, either by offloading excess traffic vertically between edge devices and centralized cloud resources, or by dispersing workloads horizontally across edge clusters. However, such strategies implicitly rely on the predictability and stability of video input, typically generated from fixed cameras with consistent monitoring patterns.
 
-Either if you are using the template from 
-\href{http://latextemplates.org/template/kaobook}{latextemplates}, or if 
-you cloned the GitHub 
-\href{https://www.github.com/fmarotta/kaobook}{repository}, there are 
-infinite ways to use the \Class{kaobook} class in practice, but we will 
-discuss only two of them. The first is to find the \Path{main.tex} file 
-which I used to write this book, and edit it; this will probably involve 
-a lot of text-deleting, copying-and-pasting, and rewriting. The second 
-way is to start almost from scratch and use the \Path{skeleton.tex} 
-file, which is a cleaned-up version of the \Path{main.tex}; even if you 
-choose the second way, you may find it useful to draw inspiration from 
-the \Path{main.tex} file.
+% This foundational assumption begins to falter with the rise of mobile cameras. Offering advantages such as broader spatial coverage, dynamic viewpoints, and context-rich mobility, mobile cameras introduce transformative possibilities in surveillance, navigation, and real-time analytics. Yet their inherent variability in scene content, motion, and capture conditions destabilizes traditional pipeline assumptions. Static workload plans struggle to accommodate the fluid nature of mobile streams, necessitating adaptive resource scheduling and flexible model placement strategies that react to changing environmental and operational contexts.
+This assumption, however, begins to break down with the emergence of mobile cameras. Unlike their fixed counterparts, mobile cameras offer advantages such as increased coverage, dynamic perspectives, and enhanced situational awareness. Yet, they also introduce distinct challenges—most notably, the rapid and unpredictable variation in scene content. This volatility disrupts traditional workload planning and demands adaptive processing strategies that can respond in real-time to fluctuating video streams and computational needs.
 
-To compile the document, assuming that its name is \Path{main.tex}, you 
-will have to run the following sequence of commands:
+% ---
 
-\begin{lstlisting}[style=kaolstplain,linewidth=1.5\textwidth]
-pdflatex main # Compile template
-makeindex main.nlo -s nomencl.ist -o main.nls # Compile nomenclature
-makeindex main # Compile index
-biber main # Compile bibliography
-makeglossaries main # Compile glossary
-pdflatex main # Compile template again
-pdflatex main # Compile template again
-\end{lstlisting}
+% The objective of this thesis is to propose and develop a novel architecture that addresses the aforementioned challenges of deploying video analytics applications in resource-constrained environments. This architecture will define how processing pipelines can be efficiently distributed and managed to handle workload variations effectively. By optimizing resource utilization and ensuring efficient distribution of tasks, the proposed architecture will aim to enhance the performance and reliability of video analytics applications in diverse and dynamic settings.
 
-You may need to compile the template some more times in order for some 
-errors to disappear. For any support requests, please ask a question on 
-\url{tex.stackexchange.org} with the tag \enquote{kaobook}, open an 
-issue on GitHub, or contact the author via e-mail.
+This thesis aims to introduce and design an innovative architecture tailored to the aforementioned challenges associated with deploying video analytics applications in resource-constrained environments. The proposed framework will establish efficient methods for distributing and managing processing pipelines to adapt to fluctuating workloads. By optimizing resource efficiency and streamlining task distribution, we will be able to improve the overall performance and reliability of video analytics systems in varied and constantly evolving scenarios.
+
+\section{Contributions of this Thesis}
+
+This thesis makes several key contributions to the field of edge computing and video analytics:
+
+Self-Balancing Architecture for Live Video Analytics: VideoJam implements a distributed load balancing system by deploying load balancers co-located with each task in the analytics pipeline. Each load balancer continuously monitors the incoming flow of frames or objects and periodically shares this information with neighboring load balancers. Based on the collected data, each load balancer independently decides how much traffic to process locally and whether to offload some of its workload to less-burdened neighbors using a lightweight machine learning model that predicts the incoming workload for each processing component and its neighbors in the near future. Additionally, the load balancers employ a congestion prevention signaling system to correct any prediction errors. VideoJam operates autonomously, adapting dynamically to changes such as new camera arrivals or departures without requiring system reboots, and balances incoming traffic accordingly. Our approach uniquely combines horizontal distribution and per-function type load balancing, driven by short-term forecasts of incoming loads.
+
+Efficient Model Cohabitation in Edge Computing Model Serving: an orchestration architecture designed to maximize system performance in scenarios where model colocation is necessary, particularly in resource-constrained edge environments. The key innovation of Roomie is its kernel-aware interference profiling, which captures the sequential nature of GPU kernel execution patterns when multiple models share hardware resources. By analyzing how specific kernel sequences from different models interact, Roomie constructs accurate interference profiles that predict performance degradation under various colocation scenarios. This detailed approach allows Roomie to make optimal placement decisions, determining which models can efficiently coexist on the same hardware and which combinations should be avoided to ensure performance guarantees.
+
+Building upon these contributions, the next chapter (Chapter 2) will explore the foundational background and relevant literature that inform our research. This contextual groundwork is essential for grasping the significance of our innovations and the methodological choices made throughout the thesis, thereby enabling a holistic understanding of our strategy for optimizing edge computing and video analytics.
