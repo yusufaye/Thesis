@@ -1,0 +1,71 @@
+\section{Introduction}\label{sec:intro}
+
+Machine learning (ML) inference serving has become a foundational task for a
+variety of domains, with organizations  increasingly deploying ML models that
+applications spanning from computer vision to natural language
+processing~\cite{}. Unfortunately, the growing demand for ML inference requests
+is now outpacing hardware availability, creating a critical resource gap that
+forces organizations to maximize utilization of existing computational
+infrastructure. To process the incoming data streams in real-time while working
+within these constraints, scalable model serving architectures have been
+proposed to support a multitude of applications across video analytics, language
+understanding, recommendation systems, anomaly detection, and more~\cite{}. The
+increasing data volume demands of state-of-the-art models, coupled with tight
+service level objectives (SLOs) (\eg, latency), has made efficient resource
+utilization a core challenge across all deployment scenarios~\cite{}.
+
+\yf{This paragraph is a bit vague, might benefit from more specific examples.} To address these resource constraints, recent work has explored deploying ML
+inference pipelines across diverse computational environments, from cloud-grade
+server clusters to resource-constrained edge devices~\cite{}. While cloud
+deployments offer abundant resources, they often face network latency and data
+privacy concerns. Conversely, edge deployments can reduce latency and address
+privacy issues by leveraging compute resources close to data sources, but they
+typically feature limited computational resources as they are co-located with
+existing network equipment. Regardless of the deployment environment,
+efficiently managing available resources requires intelligent distribution of
+inference requests across the infrastructure~\cite{}. Unfortunately, existing
+solutions for ML inference serving often overlook the unique characteristics of
+resource-constrained environments, failing to maximize the utilization of
+available hardware.
+
+While significant research has addressed orchestrating model placement and query
+distribution~\cite{}, these approaches yield limited benefits when the
+performance profiles of deployed models are imprecisely characterized or when
+models operate concurrently. This is particularly problematic in
+resource-constrained environments where multiple models must share limited
+hardware and can significantly interfere with each other's execution. Recent
+work such as USHER~\cite{shubha2024usher} attempted to address this gap by
+analyzing models at the kernel level to better understand performance under
+interference conditions. However, their approach fails to account for the
+complex execution patterns of models on GPU architectures, resulting in
+inaccurate performance predictions (as discussed in detail in
+Section~\ref{sec:motivation}). This limitation becomes especially critical in
+resource-constrained deployment scenarios, where even minor performance
+estimation errors can dramatically impact overall system efficiency, potentially
+rendering carefully orchestrated deployments infeasible. A more nuanced
+understanding of model execution characteristics is therefore essential to
+enable truly efficient inference serving across all computational environments.
+
+In this paper, we present \roomie, a model serving orchestration architecture
+that maximizes system performance in scenarios where colocation is necessary
+across resource-constrained environments. \roomie's key contribution is its
+kernel-aware interference profiling that captures the sequential nature of GPU
+kernel execution patterns when multiple models share hardware resources. By
+understanding how specific kernel sequences from different models interact,
+\roomie{} builds accurate interference profiles that predict performance
+degradation under various colocation scenarios. This fine-grained approach
+enables \roomie{} to make better informed placement decisions, identifying
+which models can efficiently coexist on the same hardware and which combinations
+should be avoided to maintain performance across both goodput and latency.
+
+Our experimental evaluation demonstrates \roomie's effectiveness across a
+diverse set of inference models and deployment scenarios. We compare \roomie{}
+with state-of-the-art solutions~\cite{} across both cloud-grade server clusters
+and embedded edge devices, showing that \roomie{} improves goodput by up to X\%
+across a variety of workloads. Further, in situations where goodput is
+comparable, \roomie{} improves latency by 10x. These improvements stem from
+\roomie's ability to precisely characterize the interference patterns between
+colocated models, enabling more efficient resource utilization without
+sacrificing individual model performance. These results highlight the importance
+of understanding GPU execution dynamics for maximizing inference serving
+performance in resource-constrained environments.

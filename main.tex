@@ -57,6 +57,8 @@
 % Load the package for hyperreferences
 \usepackage{kaorefs}
 
+\usepackage{subcaption}
+
 \graphicspath{{examples/documentation/images/}{images/}} % Paths in which to look for images
 
 \makeindex[columns=3, title=Alphabetical Index, intoc] % Make LaTeX produce the files required to compile the index
@@ -70,6 +72,9 @@
 %\counterwithin*{sidenote}{chapter}
 
 %----------------------------------------------------------------------------------------
+\newcommand{\yf}[1]{\textcolor{red}{YF:#1}}
+\newcommand{\roomie}{\textsc{Roomie}}
+\newcommand{\videojam}{\textsc{VideoJam}}
 
 \begin{document}
 
@@ -204,6 +209,8 @@
 \mainmatter % Denotes the start of the main document content, resets page numbering and uses arabic numbers
 \setchapterstyle{kao} % Choose the default chapter heading style
 
+\input{chapters/abstract.tex}
+
 \input{chapters/introduction.tex}
 
 \input{chapters/state-of-art.tex}
@@ -211,6 +218,8 @@
 \input{chapters/self-balancing_architecture_for_live_video_analytics.tex}
 
 \input{chapters/efficient_model_cohabitation_in_edge_computing_model_serving.tex}
+
+\input{chapters/conclusion.tex}
 
 \appendix % From here onwards, chapters are numbered with letters, as is the appendix convention
 

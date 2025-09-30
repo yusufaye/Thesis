@@ -1,0 +1,101 @@
+## 4.2 Performance Evaluation of Cloud-Based GPU Cluster Solutions
+
+To assess the effectiveness of our proposed deployment strategy, we conducted a comprehensive evaluation using a cloud-based GPU cluster comprising 12 GPUs and a suite of 19 deep neural network (DNN) models, as detailed in Table X. The experiments were performed using two distinct datasets: real-world Twitter data and synthetically generated data.  These synthetic workloads were constructed to mimic real-world traffic patterns while allowing precise manipulation of query rates. This enabled a more granular analysis of system behavior under stress. These datasets were used to simulate varying workload intensities, beginning with low traffic levels that all models could handle and gradually increasing until system saturation was observed.
+
+### 4.2.1 Evaluation Using the Twitter Dataset
+
+Figure 5 presents the performance results obtained from the Twitter dataset. Under low workload conditions, all approaches demonstrated comparable response times. However, as the workload increased, significant performance disparities emerged. Notably, Roomie achieved a response time up to 18× lower than competing solutions and maintained a processing rate exceeding 97\%. In contrast, Usher’s strategy of colocating large models with lightweight ones failed to deliver satisfactory performance under high load, resulting in increased latency and reduced throughput. INFaaS, which scales DNNs on workers already hosting a copy, showed moderate goodput performance. However, this approach is agnostic to model interference, leading to latency increases of up to 18× and a decline in processing rate.
+
+% Additionally, GPU utilization remained low across all approaches, despite clear signs of performance degradation. This suggests that resource underutilization may be mitigated by increasing batch sizes, although this would likely introduce additional latency.
+Interestingly, despite low GPU utilization across all approaches, we observe a sharp increase in response time as workload intensifies. This counterintuitive behavior can be attributed to the saturation of large models, which become unable to keep pace with incoming queries. As these models reach their computational limits, they begin to queue requests, leading to latency explosions—even though the GPU itself remains underutilized. Additionally, interference between colocated models can further degrade responsiveness, compounding delays without a corresponding rise in GPU activity. One potential mitigation strategy is to increase batch sizes, which can improve utilization by amortizing overhead across multiple queries. However, this approach introduces a trade-off: larger batches may inflate response times, making it unsuitable for latency-sensitive applications. These findings underscore the need for deployment strategies that go beyond raw utilization metrics and account for model saturation dynamics and cross-model interference.
+
+### 4.2.2 Evaluation Using the Synthetic Dataset
+
+Figure 6a illustrates the results of the evaluation conducted with a synthetic dataset designed to emulate diverse and controlled workload scenarios.
+
+The performance trends observed with the synthetic dataset closely mirrored those seen with the Twitter data. Roomie consistently outperformed other deployment strategies, achieving a 7.6× reduction in response time and superior throughput and processing rates. These gains are attributed to Roomie’s intelligent model deployment and colocation strategy, which minimizes interference and maximizes resource efficiency.
+
+In summary, across both datasets, Roomie demonstrated robust performance under varying workload conditions. It consistently achieved lower response times—up to 18× faster—and higher throughput than competing approaches, validating its effectiveness in cloud-based GPU environments.
+
+--
+
+Figure 6a presents results from synthetic workloads designed to emulate diverse traffic patterns and stress conditions. Roomie consistently outperforms other strategies, achieving a 7.6× reduction in response time and higher throughput, thanks to its interference-aware deployment approach.
+
+These performance gains are particularly notable given the underlying resource behavior. As in the Twitter dataset, GPU utilization remains low across all approaches—even as latency sharply increases under high load. This paradox is explained by the saturation of large models, which become unable to keep pace with incoming queries and begin queuing requests. Consequently, response times escalate despite underused hardware. Interference between colocated models further compounds this effect, degrading responsiveness without a proportional rise in GPU activity. While increasing batch sizes could improve utilization, this introduces latency trade-offs that may conflict with real-time inference requirements.
+
+Overall, Roomie demonstrates strong performance under synthetic stress, effectively navigating the challenges of model saturation and resource contention.
+
+---
+
+## 4.3 Performance Evaluation on Edge Devices Using Jetson Xavier GPUs
+
+To further validate our approach, we conducted a second set of experiments using a cluster of 12 Jetson Xavier GPUs, representative of resource-constrained edge computing environments. As in the cloud-based evaluation, we deployed 12 models and tested performance using both Twitter and synthetic datasets, gradually increasing workload intensity.
+
+### 4.3.1 Evaluation Using the Twitter Dataset
+
+Figure 7 presents the results obtained with the Twitter dataset on Jetson Xavier devices. While Usher and INFaaS exhibited similar throughput levels, INFaaS achieved lower latency, whereas Usher maintained a higher processing rate. Roomie, nevertheless, significantly outperformed both, achieving an 8.3× reduction in latency compared to INFaaS under high workload conditions. It also delivered superior throughput and processing rates due to its proactive colocation strategy.
+
+Edge environments impose stricter constraints on model deployment due to limited computational resources and reduced scalability. In this context, Roomie’s colocation strategy demonstrates a marked advantage, effectively balancing resource allocation and minimizing performance degradation. As workload intensity increases, GPU utilization rises accordingly—reaching levels notably higher than those observed in cloud-based setups. This underscores the critical importance of intelligent colocation policies in edge scenarios, where resource efficiency directly impacts system responsiveness and throughput.
+
+### 4.3.2 Evaluation Using the Synthetic Dataset
+
+The synthetic dataset evaluation on Jetson Xavier GPUs yielded consistent results with those observed on the Twitter dataset. Roomie again demonstrated superior performance, achieving a 9× reduction in response time and a 1.3× increase in processing rate. Throughput was also 1.5× higher than competing approaches.
+
+These findings confirm that Roomie is the most effective DNN deployment strategy in edge computing contexts where colocation is necessary and resources are limited. Its ability to maintain low latency and high throughput under constrained conditions makes it a compelling solution for real-time inference workloads.
+
+
+### Conclusion
+
+Across both cloud-based and edge GPU environments, Roomie consistently demonstrated superior performance in deep neural network deployment. On cloud infrastructure, it achieved up to 18× lower response times and sustained processing rates above 97\%, outperforming INFaaS and Usher under high workload conditions. On edge devices, Roomie maintained its lead with up to 9× faster response times and throughput gains of up to 1.5×, validating its robustness in resource-constrained scenarios.
+
+These results highlight Roomie’s ability to optimize model placement and colocation, effectively mitigating latency spikes caused by model saturation and interference. Unlike competing approaches, Roomie adapts to workload intensity while preserving responsiveness and maximizing throughput. Its consistent performance across real-world and synthetic datasets confirms its suitability for scalable, low-latency inference in both centralized and distributed deployments.
+
+
+
+
+
+
+
+
+
+
+
+**Figure 5 – Cloud GPU Performance on Twitter Dataset**  
+*Roomie achieves up to 18× lower response time and highest processing rate under high workload, outperforming INFaaS and Usher. GPU underutilization suggests potential for batch-size tuning.*
+
+**Figure 6a – Cloud GPU Performance on Synthetic Dataset**  
+*Roomie maintains superior throughput and reduces latency by 7.6×, confirming its robustness across controlled synthetic workloads and validating its deployment strategy.*
+
+**Figure 7 – Edge GPU Performance on Twitter Dataset**  
+*Roomie delivers 8.3× lower latency and higher throughput than INFaaS and Usher, demonstrating effective colocation under resource-constrained edge conditions.*
+
+**Figure ?? – Edge GPU Performance on Synthetic Dataset**  
+*Roomie sustains top performance with 9× lower response time and 1.5× higher throughput, reinforcing its suitability for edge deployments with limited resources.*
+-----
+
+
+Cloud GPU – Twitter Dataset Roomie delivers up to 18× lower latency and highest processing rate under stress, outperforming INFaaS and Usher. Low GPU utilization suggests room for optimization via batch-size tuning.
+
+Cloud GPU – Synthetic Dataset Roomie sustains top performance across synthetic workloads, reducing response time by 7.6× and maximizing throughput through strategic model deployment.
+
+Edge GPU – Twitter Dataset Roomie excels in resource-constrained edge environments, achieving 8.3× lower latency and superior throughput through proactive colocation strategies.
+
+Edge GPU – Synthetic Dataset Roomie maintains its lead with 9× faster response time and 1.5× higher throughput, confirming its robustness in limited-resource edge scenarios.
+
+
+----
+Roomie achieves up to 18× lower response time and over 97\% processing rate during cloud-based evaluation on the Twitter dataset, outperforming INFaaS and Usher under high workload conditions.
+
+In cloud-based evaluation using synthetic workloads, Roomie yields 7.6× faster response time and highest throughput, confirming its deployment efficiency in controlled stress scenarios.
+
+Edge-based evaluation on the Twitter dataset shows Roomie delivering 8.3× lower latency and superior throughput on Jetson Xavier GPUs, validating its proactive colocation strategy under constrained resources.
+
+Under synthetic edge evaluation, Roomie sustains 9× faster response time and 1.5× higher throughput, demonstrating robust performance in resource-limited environments.
+
+
+
+
+Response time.
+Goodput.
+Processing rate.
+GPU utilization.

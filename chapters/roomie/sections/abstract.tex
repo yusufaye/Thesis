@@ -1,0 +1,21 @@
+\begin{abstract}
+The increasing popularity of deep neural network (DNN) inference requests is
+drastically outpacing hardware availability, making it essential to maximize
+utilization of existing computational resources. While inference performance is
+fundamentally dependent on available computational resources, existing systems
+overlook the fine-grained interactions occurring at the kernel execution level
+when multiple models are colocated on the same GPU, leading to suboptimal
+performance given available resources. This paper presents \roomie, a novel
+system for orchestrating DNN model deployment on resource-constrained clusters.
+\roomie's key innovation is its kernel-aware interference profiling that
+captures the sequential nature of GPU kernel execution patterns when multiple
+models share hardware resources. By understanding how specific kernel sequences
+from different models interact, \roomie{} builds accurate interference profiles
+that predict performance degradation under various colocation scenarios. Using
+these profiles, \roomie's orchestration layer makes intelligent decisions about
+model placement, scheduling, and resource allocation across clusters to maximize
+hardware utilization. Our experimental evaluation compares \roomie{} with
+state-of-the-art solutions across both cloud-grade server clusters and embedded
+edge devices, showing that we can improve goodput by up to X\%. In situations
+where goodput is comparable, \roomie{} decreases latency by up to 10$\times$.
+\end{abstract}
