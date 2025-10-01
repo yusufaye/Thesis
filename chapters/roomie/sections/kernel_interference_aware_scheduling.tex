@@ -174,7 +174,7 @@ To address this, we propose a heuristic algorithm that approximates the interfer
 For each model pair $(m_i, m_j)$, we define a reduced set of starting indices $S_i$ and $S_j$, and construct the set of concurrent execution scenarios as:
 
 \begin{equation*}
-	\mathcal{C}_{i,j} = S_i \times S_j, \quad \text{where } S_i = \{0, n, 2n, \dots, (p_i - 1)n\}
+	\mathcal{C}_{i,j} = S_i \times S_j
 \end{equation*}
 
 Each scenario corresponds to a pair of starting indices $(s_i, s_j)$, which determine the positions in the kernel sequences where concurrent execution begins (line 8 in~\Cref{algo:kernel_interference_algorithm}). These serve as the basis for simulating localized interference effects between the two models.

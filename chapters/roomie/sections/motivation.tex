@@ -1,24 +1,18 @@
 \section{Motivation and Challenges}\label{sec:motivation}
 
 
-In this section, we will discuss the importance of taking model interference
-into account when inference serving, as demonstrated by the suboptimal
-performance of existing approaches.
-
-
-\subsection{Motivation}
-
+In this section, we will discuss the importance of taking model interference into account when inference serving, as demonstrated by the suboptimal performance of existing approaches.
 
 \begin{figure}
 	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
+	\begin{subfigure}[t]{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/Throughput_models_in_isolation.pdf}
 		\caption{Throughput when the model operates in isolation, without any interference.}
 		\label{fig:isolation}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.3\textwidth}
+	\begin{subfigure}[t]{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/Throughput_models_in_combinaison.pdf}
 		\caption{An alternative to co-locating three models on two GPUs, offering a better compromise than Usher~\cite{shubha2024usher}.}
@@ -27,129 +21,53 @@ performance of existing approaches.
 	\label{fig:three graphs}
 \end{figure}
 
-% We conducted an experiment with three inference models and two GPUs. The goal was to determine the best colocation choice from among all possible cases. While Usher would choose to place \textit{Alexnet} with \textit{SSD}, another possibility from all possible choices is placing \textit{Googlenet} with \textit{SSD}, which provides a better trade-off. Usher's poor choice here has everything to do with how model compatibility is considered. Simply classifying models as computation-heavy or memory-heavy does not provide a more detailed overview of model performance. We should consider a finer-grained approach that relies on the resources requested by each model over time. Indeed, the actual instructions executed by a model to complete inference are kernels. Therefore, we should consider the occupancy (or resources) of kernels over time rather than the occupancy of the DNN itself, which hides the complexity. Over time, when multiple kernels (\ie, from different DNNs) request more resources than the GPU can provide, this leads to interference, which will have a direct impact on the initial execution time of the kernel. By aligning kernels from different DNNs, we can determine and measure kernels that interfere and measure the performance drop. With that insight, we could proactively determine which combination is best when colocation is needed.
+\subsection{Limitations of Existing Inference Serving Strategies}
 
-We conducted an experimental study evaluating the performance of three inference models (\textit{Alexnet}, \textit{Googlenet}, and \textit{SSD}) on two Jetson Xavier. The performance of each DNN when operating in isolation is shown in~\Cref{fig:isolation}. The main objective was to identify the best colocation configuration among all possible combinations. Our results showed that the approach proposed by Usher, which consists of placing \textit{Alexnet} with \textit{SSD}, is not necessarily the best option. Indeed, another possible configuration, that of \textit{Googlenet} with \textit{SSD}, offers a better compromise in terms of performance (see~\Cref{fig:colocation}).
-We have found that Usher's erroneous choice is linked to the way in which model compatibility is assessed. Simply classifying models according to their computing or memory capacity does not provide a detailed overview of their performance. Instead, a more refined approach that takes into account the resources demanded by each model over time is required.
+The deployment of machine learning models for inference serving has become increasingly critical across domains such as computer vision, natural language processing, and recommendation systems. As demand for real-time inference grows, organizations are compelled to maximize the utilization of existing computational infrastructure, particularly in resource-constrained environments. While scalable serving architectures have been proposed to meet service level objectives (SLOs), such as latency and throughput, many existing systems rely on simplistic heuristics for model placement and colocation. These approaches typically reference offline profiling data or prioritize devices with the most available memory, overlooking the nuanced performance degradation that arises when multiple models share GPU resources.
 
-Indeed, the actual instructions executed by a model to complete inference are kernels. Therefore, we should consider the resource occupancy of kernels over time rather than the occupancy of the DNN itself, which masks complexity. When several kernels from different DNNs require more resources than the GPU can provide, interference results, which has a direct impact on the initial execution time of each kernel.
-By aligning kernels from different DNNs, we can determine and measure which kernels are interfering, and assess the associated drop in performance. With this information, we can proactively determine the best combination of models when colocation is required.
+The assumption that memory availability is a reliable proxy for inference performance is mistaken. During inference, models consume significantly less memory compared to training, as intermediate states and gradients are not retained. Consequently, memory-centric placement decisions fail to account for the dynamic interference between concurrently executing models. Systems such as Usher attempt to address this by analyzing low-level GPU kernels to estimate resource demands. However, their methodology does not capture the complex interactions between kernels from different models, leading to suboptimal colocation choices.
 
+We conducted an experimental study to evaluate the performance of three inference models: AlexNet, GoogLeNet, and SSD, on two Jetson Xavier devices. The performance of each deep neural network (DNN) when operating in isolation is illustrated in~\Cref{fig:isolation}. Our primary objective was to identify the optimal co-location configuration among all possible combinations. Our findings revealed that Usher's proposed approach of co-locating AlexNet with SSD is not necessarily the most effective option. In fact, an alternative configuration, GoogLeNet paired with SSD—demonstrates a superior balance in performance (refer to Figure colocation).
 
-
-% - 1. Kernel
-% - 2. [CUDA] Stream (default)
-% - 3. Multiple streams for hight GPU utilization and parallel kernel execution
-% 	multiple models can run simultanously
-% - 4. Occupancy
-% 	a- theoritical
-% 	b- achieved
-% - etc.
-
-% GPU vessels are widely used to serve the models. Libraries such as CUDA and OpenCL are being developed to efficiently perform DNN inference operations.
-
-\begin{figure}[t!]
-	\centering
-	\includegraphics[width=\linewidth]{chapters/roomie/images/theoritical_achieved_occupancy_batch_size64.pdf}
-	\caption{Average GPU occupancy during inference among different DNN on the Jetson Xavier.}
-	\label{fig:theoritical_achieved_occupancy}
-\end{figure}
-
-Several technologies have been developed for high performance computing tasks on GPUs, such as CUDA for NVIDIA and OpenCL for AMD devices. A CUDA kernel is a program that runs on a NVIDIA GPU, executing a specific task in parallel across thousands of threads. A CUDA stream is a sequence of kernels that are launched and executed on a NVIDIA GPU in serialized manner. When a kernel is launched without précising the stream this is executed in the default stream and will prevent any other streams from executing which can lead to GPU underutilization. Multiple streams can execute concurrently, allowing for better utilization of GPU resources and improved overall performance. To benefit from parallel kernel executions all streams should be created in the same CUDA context by simply using the process as each process will have its own CUDA context and will execute on the GPU in time sharing manner.
-
-A DNN model is made up of several kernels which are executed in serialized manner on the GPU. In fact, each layer of a neural network model can execute multiple kernels. For better utilization of the GPU multiple models can run inside the same GPU where each will use it own CUDA stream for parallel kernel execution. In fact, kernels can be characterized by there duration and occupancy in the GPU during execution. By using profiling tools either Nsight-System or Torch profiler and through the kernel launch configure we can determine the theoretical occupancy of the GPU which represent the maximum utilization of the GPU a kernel can reach during its execution. Experiment conducted with four DNN shows that kernels do not use all available resource during there execution~\Cref{fig:theoritical_achieved_occupancy}. This demonstrates the benefits of running multiple models on the same GPU to maximize resource utilization.
+We have determined that Usher's misjudgment stems from the method used to assess model compatibility. Merely classifying models based on their computing or memory capacity does not provide a comprehensive understanding of their performance. A more nuanced approach that considers the resource demands of each model over time is essential for accurate evaluation.
 
 
-\subsection{Failure to define an effective DNN colocation strategy}
-% Failure when it comes to choosing a good model colocation strategy
-% Failure in defining an effective model for colocation strategy
-% Table
-%model name	%memory	%computation
+\subsection{The Importance of Kernel-Level Analysis}
 
-% \begin{figure}[t!]
+Deep neural networks (DNNs) perform inference by executing a sequence of GPU kernels, each responsible for specific low-level computations and defined by distinct resource requirements such as shared memory, register usage, and execution time. These kernels, rather than the high-level model architecture, constitute the true computational footprint on the GPU. Profiling tools such as Nsight Systems~\cite{nsight_systems} and Torch Profiler~\cite{torch_profiler} enable fine-grained observation of kernel behavior, revealing patterns of resource occupancy and execution timing that are often obscured at the model level. Empirical analysis shows that individual kernels frequently leave portions of the GPU underutilized, suggesting that with careful orchestration, multiple models can be deployed simultaneously to improve overall throughput.
+
+However, when models are executed concurrently on the same GPU, their kernels may overlap in time and compete for limited hardware resources. Although this parallelism can enhance utilization, it also introduces a critical challenge: interference. This occurs when the combined resource demands of overlapping kernels exceed the GPU's capacity, forcing the hardware to serialize execution or delay kernel launches. For instance, if two kernels simultaneously require more shared memory or registers than the GPU can allocate, contention arises, leading to extended execution times and degraded performance. The severity of interference is shaped not only by the type of resources consumed but also by the duration and temporal alignment of kernel execution. Without precise modeling of these interactions, colocation decisions risk undermining system efficiency rather than enhancing it.
+
+Effective colocation requires more than simply identifying underutilized resources; it demands a precise understanding of how kernels from different models interact during concurrent execution. The configuration of each kernel (its use of shared memory, registers, and other architectural resources) determines its potential for interference with others. Predicting these interferences cannot be based solely on aggregated model statistics or layer-level abstractions, as these overlook the fine-grained execution dynamics that govern actual performance. Instead, kernel-level analysis must consider both static resource requirements and temporal execution behavior to assess how overlapping workloads compete for limited GPU capacity. By modeling these interactions, it becomes possible to identify model pairs that minimize conflicts and make informed colocation decisions that preserve throughput and latency under constrained conditions.
+
+\subsection{Challenges in Modeling and Predicting Interference}
+
+% \begin{figure}
 % 	\centering
-% 	\includegraphics[width=\linewidth]{chapters/roomie/images/allocated_memory_batch_size64.pdf}
-% 	\caption{Maximum memory allocated during inference on a Jetson Xavier GPU.}
-% 	\label{fig:max_allocated_memory}
+% 	\includegraphics[width=\textwidth]{chapters/roomie/images/duration_gap.pdf}
+% 	\caption{Throughput when the model operates in isolation, without any interference.}
+% 	\label{fig:duration_gap}
 % \end{figure}
 
-\begin{figure}[t!]
-	\centering
-	\includegraphics[width=\linewidth]{chapters/roomie/images/aggregate_performance_drop_model.pdf}
-	\caption{Deploying a large model with a lighter model does not necessarily guarantee better performance. Aggregated throughput instead with a table.}
-	\label{fig:performance_drop_model}
-\end{figure}
+Determining the best colocation strategy for deep neural networks (DNNs) sharing a GPU requires a nuanced understanding of how their kernels interact during inference. The goal is to identify model pairings that maximize throughput and minimize latency by avoiding harmful interference. Achieving this demands accurate performance modeling at the kernel level, where resource contention and execution overlap directly impact runtime behavior. However, building such models introduces several practical and computational challenges that must be addressed to ensure scalability and reliability.
 
-\begin{table}
-	\centering
-	\begin{tabular}{p{1.5cm}p{1.5cm}p{2cm}p{2cm}}
-		\toprule
-		\textbf{Model} & \textbf{Max memory allocated (\%)} & \textbf{Theoretical occupancy (\%)} & \textbf{Achieved occupancy (\%)} \\
-		\midrule
-		Squeezenet     & 1.69                               & 73.96                               & 54.58                            \\
-		Alexnet        & 1.35                               & 73.36                               & 54.97                            \\
-		Fasterrcnn     & 53.92                              & 78.1                                & 50.53                            \\
-		Fcos resnet    & 36.3                               & 80.84                               & 42.85                            \\
-		\bottomrule
-	\end{tabular}
-	\caption{Occupancy and maximum memory allocated during inference on a Jetson Xavier.}
-\end{table}
+\paragraph{Profiling overhead and trace collection.}
+% Profiling is essential for capturing the fine-grained execution characteristics of DNN kernels, including resource usage and execution time. These metrics form the backbone of any interference-aware colocation strategy. Yet, collecting accurate traces is inherently time-consuming and introduces overhead that can distort the very measurements it seeks to record. Profiling tools rely on instrumentation and callbacks that add latency to kernel execution, often resulting in total recorded durations that exceed the actual inference time. This discrepancy complicates performance estimation and can mislead scheduling decisions if left uncorrected. Despite these limitations, profiling remains indispensable, as predicting kernel behavior analytically is highly challenging due to the variability in runtime configurations and hardware-specific optimizations. Fortunately, the process can be made tractable by profiling models in isolation. Since the number of GPU architectures in deployment is relatively small, and many models follow standardized execution patterns, it is feasible to build a reusable profiling database that supports accurate interference modeling without incurring prohibitive cost.
+% Profiling is crucial for capturing the detailed execution characteristics of Deep Neural Network (DNN) kernels, particularly regarding resource usage and execution time, which are essential for interference-aware colocation strategies. However, the process of collecting accurate execution traces is time-consuming and introduces overhead that can distort measurements, often resulting in recorded durations that exceed actual inference times. This discrepancy complicates performance estimation and may mislead scheduling decisions if uncorrected. Despite these limitations, profiling is indispensable, as predicting kernel behavior analytically is challenging due to variability in runtime configurations and hardware-specific optimizations. Profiling models in isolation can alleviate some of these issues, and given the relatively small number of GPU architectures in use and the standardized execution patterns of many models, it is feasible to create a reusable profiling database that supports accurate interference modeling without incurring prohibitive costs.
+Profiling is essential for capturing the fine-grained execution characteristics of DNN kernels, including resource occupancy and duration. These metrics form the backbone of any interference-aware colocation strategy. Yet, collecting accurate traces is inherently time-consuming and introduces overhead that can distort the very measurements it seeks to record. Profiling tools rely on instrumentation and callbacks that add latency to kernel execution, often resulting in total recorded durations that exceed the actual inference time.
+In practice, we observed that the ratio between profiled kernel durations and actual inference time can vary considerably, sometimes exceeding the true runtime by a wide margin, highlighting how profiling overhead may distort performance measurements and must be carefully considered.
+% This discrepancy complicates performance estimation and can mislead scheduling decisions. Figure~\ref{fig:duration_gap} illustrates this phenomenon, showing the gap between the measured inference time and the aggregate kernel durations.
+Despite these limitations, profiling remains indispensable, as predicting kernel behavior analytically is highly challenging due to the variability in runtime configurations and hardware-specific optimizations. What's more, cuDNN~\cite{cudnn} provides highly tuned implementations for standard routines such as convolution, attention, matrix multiplication, pooling, and normalization. For the same operator type, it may execute different kernels depending on the GPU architecture and available resources, with varying configurations in register usage, shared memory, and execution strategy. While this process is time-consuming, it remains feasible due to the limited number of GPU variants and the ability to profile models only in isolation.
+
+\paragraph{Combinatorial Complexity of Kernel Overlap Scenarios.}
+% Another significant challenge lies in modeling the overlapping execution of kernels across multiple DNN models. While the analytical framework developed earlier enables estimation of interference effects, applying it exhaustively is computationally prohibitive. Real-world deployments do not guarantee synchronized kernel execution; instead, each model may begin inference from any point in its kernel sequence. Evaluating all possible alignments requires constructing a full Cartesian product of starting indices, resulting in exponential growth in the number of scenarios as the number of models increases. This combinatorial explosion makes real-time evaluation impractical.
+A key challenge in optimizing deep neural network colocation lies in defining and identifying the interference itself. Interference is not a static property: it arises dynamically when the kernels of different models overlap during execution and compete for shared GPU resources. To determine which kernels are likely to interfere, it is necessary to analyze not only their resource requirements, but also their temporal alignment and execution context. This is particularly difficult because interference depends on both the type and timing of resource usage, which can vary across deployments and hardware configurations.\\
+This challenge is compounded by the vast number of possible overlapping scenarios. In realistic service environments, models do not begin inference in a synchronized manner; each can start at any point in its kernel sequence, leading to a vast space of potential execution alignments. Taking into account all combinations of starting positions across multiple models leads to exponential growth in the number of scenarios as the number of models increases. This combinatorial explosion makes exhaustive evaluation impractical for real-time decision-making. The challenge lies in estimating the impact of interference without simulating all possible alignments, while maintaining sufficient fidelity to guide effective colocation strategies.
+
+To support efficient colocation of deep neural networks on shared GPUs, we introduce~\roomie, a kernel-level profiling and interference estimation strategy that balances precision with scalability. By analyzing execution traces in isolation and simulating representative overlap scenarios,~\roomie{} enables informed deployment decisions without incurring prohibitive computational cost.
 
 
-% \# 1. First approach could be less loaded (has more free memory)
 
-% 	\# a. However, that doesn't take into account interferes that each model will have to the other which will eventually lead to performance degradation.
+% Modeling kernel interference presents several challenges. First, the diversity of GPU architectures and model types necessitates extensive offline profiling to capture performance characteristics across deployment scenarios. While this process is time-consuming, it remains feasible due to the limited number of GPU variants and the ability to profile models in isolation. Second, predicting interference requires identifying which kernels will overlap in execution and assessing the impact on their runtime. This involves analyzing resource contention at a granular level, including shared memory and register usage, and determining whether the combined demand exceeds the GPU's capacity.
 
-Many inference systems are designed to handle multiple inference requests. Each time an inference request arrives, the system chooses the requested model and decides where to deploy the model to meet service level objectives (SLOs), usually by reference to its offline profiled performance on each GPU device. Many of these systems also offer an automatic scaling mechanism that adapts the number of instances to meet the demands of varying workloads. When a request arrives, the system either instances a new resource on which to deploy the model for inference, or collocates the model with others. When models are co-located on the same workers (GPU), either to maximize resource utilization or simply as a constraint, since adding additional resources is costly, this would necessarily lead to a drop in performance for the models impacted. Indeed, when models are deployed in the same resource, their performance drops relative to their performance when isolated, due to the race for resources during inference. As a result, it is a real challenge to measure the performance drop for each model before each choice of colocation to maximize their performance.
-
-A solution that might seem very intuitive would be to choose the GPU device with the most free resources (memory in general) to hold the new instance. However, this does not take into account the interference that each model will have on the other, which will ultimately lead to performance degradation. Furthermore, memory plays a minor role when it comes to inference. In fact, models consume less memory during inference, since optimizer states, gradients, intermediate values and, in general, backward-pass data are not stored.
-
-A good approach would be to consider the kernels of each model, since it is these kernels that are the actual tasks that will be executed on the GPU in sequential order during inference. For instance, Usher has tried to use kernels to develop an estimator that calculates the computation and memory required by a model on a GPU by analyzing its low-level GPU kernels. However, the interference that kernels of different models may have with each other during execution is not addressed. Furthermore, the problem is that they try to couple models in a simplistic way by looking at the memory a model will use versus the number of GPU computations that will be occupied. Consider a simple scenario with two Jetson Xavier GPUs and three models, Alexnet, Squeezenet which are classifiers and FCOS (Fully Convolutional One-Stage Object Detection), object detection algorithm combined with ResNet (Residual Network). Usher chooses a configuration that gives sub-optimal performance by the way it groups the models. Whereas a good choice would be to deploy Alexnet and Squeezenet together \Cref{fig:performance_drop_model}.
-
-The problem, when it comes to determining the interference between models, is that you have to look at the kernel that each model will run during inference, not the model itself. In fact, however large the model may be (in terms of parameters, or memory), the only thing that really matters is the actual kernels it will execute, their orders and how each kernel will occupy GPU resources and for how long. Finally, the challenge is to measure the impact that kernels will have on each other's duration when running in parallel on different CUDA streams.
-
-\subsection{Challenges of considering CUDA Kernels}
-
-\begin{figure}[t!]
-	\centering
-	\includegraphics[width=\linewidth]{chapters/roomie/images/launch__occupancy_limit_percentage_batch_size64.pdf}
-	\caption{The distribution of the number of blocks used during inference in a Jetson Xavier shows that the kernels executed for each model have different limitations according to shared memory, registers or wraps.}
-	\label{fig:occupancy_limit_percentage}
-\end{figure}
-
-% \# 1. Two main occupancy and duration
-
-% 	\# a. Theoritical and achieved occupancy is a holistic way to measure the occupancy of a given kernel. It can be limited by multiple parameters (warps, registers, shared memory)
-
-% 	\# b. Duration how long the kernel will be using these resources.
-
-% \# 2. Difficulties of profiling, duration, achieved occupancy (maximum blocks used) we are rather profiling them with tools like nsight-compute.
-
-% \# 3. Kernels with different dependencies or requirements can be considered less interfering, so the impact on their runtimes will be small. If this is not the case, their runtimes may be extended. This should be done for all the kernels that each model executes during inference.
-
-% \# 4. How to determine which kernels are going to interfere with which?
-
-After considering the amount of memory used to store a model's parameters, all that matters is the series of kernels that will be executed in a serialized fashion on the GPU to complete an inference. Overall, a kernel can be characterized by the amount of resources it requires during execution, which will determine the total occupancy it can achieve, and by the time it takes to complete its task, which is the duration. We have already seen two types of occupancy: theoretical occupancy and achieved occupancy~\Cref{fig:theoritical_achieved_occupancy}. The theoretical occupancy can be determined by using kernel configuration (shared memory, registers, etc.) and determine the upper limit a kernel can occupancy the GPU during its execution according to its configuration{\cite{lim2017autotuninggpukernelsstatic}}. While, achieved occupancy represent the actual occupancy of a kernel which can be obtained by using a profiler like Nsight-System or Torch profiler.
-
-While some has developed tools for inferring some of these parameters others
-simply use offline profiling. We have opted for offline profiling for several
-reasons: (1) the number of existing gpu types is relatively small and profiling
-these different types of models (classifiers, detection, natural language
-processing, etc.) across all these GPU types is faster, on the order of a few
-hours or, at worst, a few weeks. (2) We need to profile these models in total
-isolation, without taking into account the different colocation combinations.
-(3) Using artificial intelligence to predict all the configuration parameters of
-a kernel (occupancy, shared memory, registers, warps, etc.) on the basis of its
-layers alone is very difficult to implement. Usher has developed a model for
-predicting certain resources, notably memory, using only layer information
-(Conv, Dense, MaxPooling, etc.) used by frameworks such as Pytorch and
-Tensorflow. However, in our case, we need the kernels and their configurations,
-not just the amount of memory used and occupancy. What's more, for the execution
-of a layer, cuDNN, which is the library developed for the execution of most DNN
-operators, can execute, for the same type of layer, different kernels depending
-on the type of GPU, available resources and available technology such as
-cuDART~\yf{Must Play Twice}. For example, when executing a convolutional layer,
-the number of kernels launched can vary from 2 to 5~\yf{Show graph}.
-
-
-To effectively determine how kernels can interfere, we therefore need all the resources they need to run. In fact, each kernel requires a certain amount of shared memory, registers, etc. during execution. Consequently, kernels with fewer dependencies or different requirements, or with a combined demand below the GPU limit, can experience less interference, so that the impact during runtime is low. On the other hand, those with greater demand on the same resource, exceeding the maximum that can be allocated, will face greater interference and possibly longer runtime. In addition, depending on the kernel's configuration at runtime, it may be impossible for it to fully utilize all available GPU resources. As a result, other kernels may eventually have room to run in parallel with a certain drop in performance. However, many challenges arise in determining (1) how different kernels can interfere with each other, (2) how available resources can be shared between kernels waiting to be executed, (3) and which kernel of a model will interfere with that of other models running on the same GPU device. In the following sections, we explain in detail how we meet all these challenges.
+% Furthermore, the execution order of kernels and their serialization within CUDA streams influence the degree of interference. Kernels with complementary resource profiles may coexist with minimal performance degradation, while those with overlapping demands can significantly delay each other's execution. Existing approaches that rely solely on layer-level information or aggregate model statistics fail to capture these subtleties. Therefore, a more refined methodology is required—one that profiles kernels individually, models their interactions, and predicts the resulting performance impact under colocation. Addressing these challenges is essential for enabling efficient inference serving in environments where computational resources are limited and colocation is unavoidable.
