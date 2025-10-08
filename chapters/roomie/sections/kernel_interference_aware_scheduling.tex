@@ -1,48 +1,32 @@
 \section{Kernel Interference-Aware Scheduling}\label{sec:kernel_interference_aware_scheduling}
-This section explains the main concept behind~\roomie. First, we introduce the idea of interference and describe a method for estimating it. Next, we present an algorithm that efficiently calculates the interference among various models. Finally, we detail a placement algorithm that utilizes the interference estimation from the first procedure to efficiently allocate new incoming models to the available GPUs.
+
+This section explains the main concept behind~\roomie. First, we introduce the idea of interference and describe a method for estimating it. Next, we present an algorithm that efficiently calculates the interference among various models. Finally, we detail a placement algorithm that utilizes the interference estimation from the first procedure to efficiently allocate new incoming models to the available \acrshort{gpu}s.
 
 \subsection{Kernel Interference Estimation}
 
-% When a new request arrives, you must perform two actions: choose a variant and select the resource in which to deploy it. Several strategies can be used to choose a variant. You can choose the fastest variant for a time-constrained application, or the most accurate but potentially slower variant. This information is often obtained by profiling the model off-line.
-
-%Kernel-level interference takes into account the interference that the kernels of several models deployed on the same GPU resource may have with each other. 
-%When a model is running for inference on an NVIDIA GPU, it launches a sequence of kernels for each of its layers. A kernel represents a single operation executed by many threads in parallel. Each kernel is launched with a configuration that defines the size of the kernel grid, the division of the grid into blocks and the GPU resources required (\eg, registers per thread, shared memory per block) to execute the kernel. A grid is an array of thread blocks. % and a block represent a 1D, 2D or 3D array of threads. \ff{Not clear, what is a grid? We should be more detailed here and add more references.} 
-%Threads within a block can share memory and synchronize their execution. Choosing an efficient launch configuration maximizes device utilization. A group of 32 threads within a cooperative thread arrays (CTAs) or blocks is called warps. A streaming multiprocessor (SM) handles execution of a kernel as groups warps. Blocks are the basic units of execution on the GPU and are scheduled to run on the multiprocessors of the GPU. Each block is given a certain amount of shared memory and a maximum number of threads it can contain, which is hardware-dependent.
-
-%The execution resource demands of individual threads ultimately constrain the maximum number of threads that can be active (running) simultaneously. There are multiple hardware limitations such as the maximum number of threads per block, the maximum registers per thread, maximum registers per block, just to name some. While exceeding some of these limitations will prevent the kernel from executing like the maximum registers per thread, others prevent the kernel from using all resources that will be in its disposable. When a kernel is limited by the number of warps that can be active at the same time in a SM this is characterized as limited by warps. A kernel is limited by registers when the number of registers per thread exceed total registers available per multiprocessor. A kernel is memory limited when the amount of shared memory available per multiprocessor limits the number of blocks that can be active at the same time. 
-%Many other limitations might also prevent a kernel from full using GPU resources such as memory bandwidth of the GPU necessary for transferring data GPU memory and the multiprocessors. Therefore, the occupancy is the ratio of the number of active warps per multiprocessor to the maximum number of possible active warps. The theoretical occupancy can be calculated offline and represents the upper limit of occupancy imposed by the kernel launch configuration and the capabilities of the CUDA device~\cite{lim2017autotuninggpukernelsstatic}. On the other hand, the achieved occupancy is measured during kernel execution and represent actual occupancy of the GPU.
-
-% With that knowledge, when two kernels are executed at the same time, warp schedulers responsible for scheduling warps can schedule different warps from different kernels to run in parallel when the hardware resource allows it.
-
-% Then kernel level interference would be the effectiveness of leveraging the insight of kernel execution and exploiting that to determine how multiple kernels might interference one other. In fact, when kernels have different limitations that can eventually lead the possible of running multiple of them at the same time. However, when kernels from different models at a specific time are requested for execution, there will be interference if on prevent another from reaching it previously preditermined occupancy. In other words, si un kernel avait au départ une certaine occupancy et que ce dernier doit partager les resources disponibles avec un autre kernel et que celui-ci reduit some nombre de block as explained previously, then this kernel will be considered in interference. And the performance drop can be computed according to the new occupancy.
-% Understanding how kernels execute is crucial for recognizing how they can interfere with one another. Interference happens when one kernel prevents another from reaching its intended performance level while both are scheduled to run simultaneously. In simpler terms, interference occurs when the demand for resources from multiple kernels at the same time exceeds the total resources that the GPU can provide. If a kernel is designed to operate at a certain capacity but must share resources with another kernel, it may end up with fewer resources available for its tasks. In this case, we say the kernel is experiencing interference. This interference can lead to lower performance, which can be measured by determining the new kernel achievement, i.e., occupancy. And this new achievement can be used to determine the new execution time of the kernel, as it may take longer to complete its tasks with fewer resources. We will demonstrate that accurately estimating this interference at the kernel level is essential for effectively managing the allocation of new models on GPUs, as it allows for better resource distribution and improved overall performance.
-
-Understanding how kernels execute is crucial for recognizing how they can interfere with one another. Interference happens when one kernel prevents another from reaching its intended performance level while both are scheduled to run simultaneously. In simpler terms, interference occurs when the demand for resources from multiple kernels at the same time exceeds the total resources that the GPU can provide. If a kernel is designed to operate at a certain capacity but must share resources with another kernel, it may end up with fewer resources available for its tasks. In this case, we say the kernel is experiencing interference.
-This interference can lead to lower performance, which can be measured by determining the kernel's new achievement, specifically its occupancy. This new occupancy can then be used to estimate the kernel's execution time, as it may take longer to complete its tasks with fewer resources. We will demonstrate that accurately estimating this interference at the kernel level is essential for effectively managing the allocation of new models on GPUs, as this helps to improve overall performance.
-
-%would be the effectiveness of exploiting knowledge of kernel execution to determine how multiple kernels can interfere with each other and how to measure the degree of interference. 
+Understanding how kernels execute is crucial for recognizing how they can interfere with one another. Interference happens when one kernel prevents another from reaching its intended performance level while both are scheduled to run simultaneously. In simpler terms, interference occurs when the demand for resources from multiple kernels at the same time exceeds the total resources that the \acrshort{gpu} can provide. If a kernel is designed to operate at a certain capacity but must share resources with another kernel, it may end up with fewer resources available for its tasks. In this case, we say the kernel is experiencing interference. This interference can lead to lower performance, which can be quantified by examining the kernel's occupancy—a metric that reflects how effectively the \acrshort{gpu}'s computational resources are being utilized during kernel execution. Depending on the severity of resource contention, kernels may still run concurrently but with degraded efficiency, or one kernel may delay the other entirely, forcing sequential execution. In both cases, interference increases latency and can reduce overall throughput. We will demonstrate that accurately estimating this interference at the kernel level is essential for effectively managing the allocation of new models on \acrshort{gpu}s, as this helps to improve overall performance.
 
 \paragraph{Model kernels.}
 
-When a model runs inference on an NVIDIA GPU, each layer is executed by launching one or multiple kernels, a computational routine that runs in parallel across many threads. These threads are grouped into warps, typically sets of 32 threads that execute instructions in lockstep. Warps ($W$) themselves are organized into blocks ($b$), which serve as the basic scheduling units on the GPU. Blocks are assigned to streaming multiprocessors (SMs), the core computational engines that execute instructions and manage local resources such as registers and shared memory. The efficiency of each kernel depends on how it uses GPU resources, such as registers allocated per thread and shared memory available during execution. While the full execution model involves additional structural details, we focus here on threads, warps, blocks, and resource usage to highlight the core mechanisms relevant to performance. For a comprehensive description of the CUDA execution model, refer to the official documentation~\cite{nvidia2025cuda}.
+When a model runs inference on an NVIDIA \acrshort{gpu}, each layer is executed by launching one or multiple kernels, a computational routine that runs in parallel across many threads. These threads are grouped into warps, typically sets of 32 threads that execute instructions in lockstep. Warps ($W$) themselves are organized into blocks ($b$), which serve as the basic scheduling units on the \acrshort{gpu}. Blocks are assigned to \acrlong{sm}s (\acrshort{sm}s), the core computational engines that execute instructions and manage local resources such as registers and shared memory. The efficiency of each kernel depends on how it uses \acrshort{gpu} resources, such as registers allocated per thread and shared memory available during execution. While the full execution model involves additional structural details, we focus here on threads, warps, blocks, and resource usage to highlight the core mechanisms relevant to performance. For a comprehensive description of the \acrshort{cuda} execution model, refer to the official documentation~\cite{nvidia2025cuda}.
 
-From this understanding of kernel execution, we can determine its theoretical occupancy, which reflects how many warps are active relative to the hardware's capacity by the following equation :
+From this understanding of kernel execution, we can determine its theoretical occupancy ($o$), which reflects how many warps are active relative to the hardware's capacity by the following equation:
 
 \begin{equation}\label{eq:occupancy}
 	o = \frac{W_b \times b}{W}
 \end{equation}
-,where $W_b$ is the number of warps per block, $b$ is the number of blocks assigned to an SM, and $W$ is the maximum number of warps the SM can support.
+,where $W_b$ is the number of warps per block, $b$ is the number of blocks assigned to an \acrshort{sm}, and $W$ is the maximum number of warps the \acrshort{sm} can support. This occupancy is defined at the \acrshort{sm} level and depends on the kernel's configuration.
 
-This value provides an overview of the number of active tasks in relation to the hardware's capacity to execute them simultaneously. It is called theoretical utilization because it represents the optimal scenario in terms of the GPU's potential workload. However, it does not guarantee that the kernel will operate efficiently. For a thorough understanding of how it is calculated, please refer to the source in~\cite{lim2017autotuninggpukernelsstatic}.
+This value provides an overview of the number of active tasks in relation to the hardware's capacity to execute them simultaneously. It is called theoretical utilization because it represents the optimal scenario in terms of the \acrshort{gpu}'s potential workload. However, it does not guarantee that the kernel will operate efficiently. For a thorough understanding of how it is calculated, please refer to the source in~\cite{lim2017autotuninggpukernelsstatic}.
 
-\paragraph{Kernel Interference.} We characterize a GPU by its capacity $\Phi$, which encompasses hardware limits such as the maximum number of warps, the size of the register file, and the amount of shared memory available per streaming multiprocessor (SM). These resources constrain the execution of a kernel, e.g., the maximum number of warps, the size of the register file, or the shared memory per multiprocessor~\cite{lim2017autotuninggpukernelsstatic}. For a set of kernels $K$ launched to run on the same GPU, interference occurs when the total resource demand exceeds the device's capacity. More formally,
+\paragraph{Kernel Interference.} We characterize a \acrshort{gpu} by its capacity $\Phi$, which encompasses hardware limits such as the maximum number of warps, the size of the register file, and the amount of shared memory available per \acrfull{sm}. These resources constrain the execution of a kernel, \eg, the maximum number of warps, the size of the register file, or the shared memory per multiprocessor~\cite{lim2017autotuninggpukernelsstatic}. For a set of kernels $K$ launched to run on the same \acrshort{gpu}, interference occurs when the total resource demand exceeds the device's capacity. More formally,
 
 \begin{equation}\label{eq:occurrence}
 	\sum_{k \in K} \varphi_k > \Phi
 \end{equation}
-,where $\varphi_k$ (e.g., warps, registers, and shared memory) denotes the resource usage of kernel $k$, and $K$ is the set of active kernels.
+,where $\varphi_k$ (\eg, warps, registers, and shared memory) denotes the resource usage of kernel $k$, and $K$ is the set of active kernels.
 
-\paragraph{Interference Modeling via Theoretical Occupancy Adjustment.} The main challenge lies in estimating the interference each kernel experiences when executed alongside others. This depends on how the theoretical occupancy is recalculated relative to the capacity of the GPU resources $\Phi$. Since GPU resources are shared among concurrent kernels, they can be redistributed in different ways, and each allocation yields a different occupancy outcome. Various strategies are possible: equal distribution, first-come-first-served, or allocation based on priorities. Each of these affects the amount of resources allocated to the kernel and its performance. Given that the available resources constrain the maximum number of blocks a kernel can launch, we can compute a new maximum blocks $\tilde{b}_k$ for each kernel $k$, based on the redistribution of the GPU resources $\Phi$. For details on this calculation, refer to~\cite{lim2017autotuninggpukernelsstatic}, or consult the implementation provided in our open-source code.
+\paragraph{Interference Modeling via Theoretical Occupancy Adjustment.} The main challenge lies in estimating the interference each kernel experiences when executed alongside others. This depends on how the theoretical occupancy is recalculated relative to the capacity of the \acrshort{gpu} resources $\Phi$. Since \acrshort{gpu} resources are shared among concurrent kernels, they can be redistributed in different ways, and each allocation yields a different occupancy outcome. Various strategies are possible: equal distribution, first-come-first-served, or allocation based on priorities. Each of these affects the amount of resources allocated to the kernel and its performance. Given that the available resources constrain the maximum number of blocks a kernel can launch, we can compute a new maximum blocks $\tilde{b}_k$ for each kernel $k$, based on the redistribution of the \acrshort{gpu} resources $\Phi$. For details on this calculation, refer to~\cite{lim2017autotuninggpukernelsstatic}, or consult the implementation provided in our open-source code~\sidenote{The~\roomie{} implementation code is freely available at \href{https://github.com/ENSL-NS/RoomieImplementation}{https://github.com/ENSL-NS/RoomieImplementation}}.
 
 With the new block limit $\tilde{b}_k$, we can derive the new occupancy $\tilde{o}_k$ using the same formulation as in~\Cref{eq:occupancy}. This allows us to estimate the new execution time of the kernel under interference:
 
@@ -50,12 +34,6 @@ With the new block limit $\tilde{b}_k$, we can derive the new occupancy $\tilde{
 	\tilde{d}_k = d_k \times \frac{o_k}{\tilde{o}_k}
 \end{equation*}
 , where $d_k$ is the execution time of kernel $k$ when running in isolation. Worth mentioned that, if $o_k = \tilde{o}_k$, then no interference occurs, and $\tilde{d}_k = d_k$.
-
-% Interference ends once the first kernel completes its execution. Assuming at most two kernels are interfering, we define the interference period as the time required for the first kernel $k^*$ to finish, $\Delta = \min \left\{ \bar{d}_k \right\}_{\forall k \in K}$.
-
-% \begin{equation*}
-% 	\bar{d}^{'}_k = \left(\bar{d}_k - \Delta \right) \times \frac{\tilde{o}_k}{o_k}
-% \end{equation*}
 
 Interference ends once the first kernel completes its execution. Assuming at most two kernels are interfering, the remaining kernel continues alone without interference. We define the interference period as the time required for the first kernel to finish, $\Delta = \min \left\{ \tilde{d}_k \right\}_{\forall k \in K}$.
 For the remaining kernel, its total duration is composed of two phases: the initial interference period $\Delta$, during which it runs with reduced occupancy $\tilde{o}_k$, and the remaining portion of its execution, which proceeds at full occupancy $o_k$. To account for the change in execution speed, we adjust the remaining time accordingly. Specifically, the portion $\tilde{d}_k - \Delta$, originally computed under reduced occupancy, is scaled by $\frac{\tilde{o}_k}{o_k}$ to reflect the normal execution once interference ends. Formally expressed:
@@ -68,17 +46,9 @@ For the remaining kernel, its total duration is composed of two phases: the init
 	\end{cases}
 \end{equation}
 
-% \begin{equation}
-% 	\tilde{d}_k=
-% 	\begin{cases}
-% 		k_{i\omega}/k_{p\omega}=2\pi\times 10 \\
-% 		\left\lvert\frac{k_{p\omega}s+k_{i\omega}}{s}\cdot\frac{1}{Ts+1}\right\rvert_{S=\mathrm{j}\cdot2\pi}=1
-% 	\end{cases}\,.
-% \end{equation}
-
 This unified notation allows us to express the adjusted duration for all kernels, whether they complete during the interference window or continue beyond it.
 
-\paragraph{Performance Drop.} Now that we have established a method for estimating interference among simultaneously executing kernels, we can generalize this approach to the inference phase of multiple DNNs. Each DNN launches a sequence of kernels, and we begin by aligning the first kernel of each DNN to form an initial set of concurrently executing kernels. This set is evaluated using the interference model described above. Once the first kernel in the set completes, it is replaced by the next kernel from the same DNN, and the process continues iteratively until all models have completed their execution, that is, until all final kernels have been processed.
+\paragraph{Performance Drop.} Now that we have established a method for estimating interference among simultaneously executing kernels, we can generalize this approach to the inference phase of multiple \acrshort{dnn}s. Each \acrshort{dnn} launches a sequence of kernels, and we begin by aligning the first kernel of each \acrshort{dnn} to form an initial set of concurrently executing kernels. This set is evaluated using the interference model described above. Once the first kernel in the set completes, it is replaced by the next kernel from the same \acrshort{dnn}, and the process continues iteratively until all models have completed their execution, that is, until all final kernels have been processed.
 
 For a model with an original inference time $T$ and a total of $q$ kernels, the new inference time under interference is given by:
 \begin{equation*}
@@ -92,79 +62,9 @@ The performance drop experienced by model $m$ due to interference is quantified 
 
 This formulation captures the cumulative slowdown introduced by resource contention across all kernels in the model's execution pipeline.
 
-% Performance Drop. Now that we have an idea of how we can determine interference between multiple simultaneous kernels, we can generalize this to all kernels that simultaneous DNNs launch during the inference of multiple DNNs. We could first align the kernels of each DNN and form a first set of kernels that would run simultaneously and follow the above formulation. Then, the first kernel to finish in this set would be replaced by the next kernel of the DNN to which it belongs. We continue in this manner until all models are completed, i.e., until all the last kernels are reached. After that, a model with an initial inference time $T$ and a total of $q$ kernels would have a new inference time:
-
-% \begin{equation*}
-% 	\tilde{T} = \sum^{q}_{i=1} \tilde{d}_{k_i}
-% \end{equation*}
-
-% Finally, the performance drop caused by the interferences on a given model, is given by the increase of the inference time, \ie, the sum of kernels' new durations after interference. The performance drop of the model $m$ is determined as:
-% \begin{equation}\label{eq:perfDrop}
-% 	\mu = \frac{\sum^{q}_{i=1} (\tilde{d}_{k_i} - d_{k_i})}{\sum^{q}_{i=1} d_{k_i}} = \frac{\tilde{T} - T}{T}.
-% \end{equation}
-
-
-
-% =========
-
-
-
-% To estimate the interference within a group of models deployed on a GPU, we need to determine the interference between the kernels of the different models. Given the set of kernels $K_t$ at a particular time $t$ launched by each model on a GPU, the interference will consist in re-distributing the GPU resources $\Phi$ among all the different kernels in $K_t$. We represent with $\bar{\varphi}_k$ the maximum resource allocable to kernel $k \in K_t$ after the re-distribution according to one of the strategies described before.
-
-
-% We denote by $M$ the set of models deployed on the GPU. Each model $m \in M$ launches a set of kernels $K_m$ for inference. Each kernel $k \in K_m$ is characterized by its duration $d_k$ (in terms of $ms$ or $ns$), its theoretical occupancy $occ_k \in \left[ 0,\, 1\right]$, and required resources $\varphi_k$ (that can be in terms of warps, registers, and shared memory). The theoretical occupancy $occ_k$ represents the highest level of GPU resource utilization that kernel $k$ can achieve during execution. It is calculated as the ratio of active warps per streaming multiprocessor (SM) to the maximum number of warps that the SM can support. Additionally, it reflects the maximum number of thread blocks that can run concurrently, which is constrained by the availability of wraps, registers, or shared memory~\cite{lim2017autotuninggpukernelsstatic}~\footnote{In our code is also available the implementation of the calculation of the theoretical GPU occupancy}. For a given kernel $k$, we represent with $b_k$ its maximum number of allocable blocks.
-
-% The inference time for model $m$ deployed the GPU is defined as:
-% \begin{equation}\label{eq:infTime}
-% 	T_m= \sum_{k\in K_m} d_k
-% \end{equation}
-% Each model launches at most one kernel at time $t$, and we represent all kernels launched at that time by each model on the same GPU as $K_t$.
-
-% We define the \textit{occurrence of interference} among kernels in $K_t$ when the sum of the requested resources exceeds the limits of the GPU device. More formally,
-% \begin{equation}\label{eq:occurrence}
-% 	\sum_{k \in K_t} \varphi_k > \Phi.
-% \end{equation}
-
-% In the event of interference, available resources are shared, leading to an increase in the execution time of kernels launched on the GPU. For the re-distribution of GPU resources to kernels in $K_t$, different strategies can be considered. For example, GPU resources can be equally distributed to all kernels in $K_t$, or each kernel can receive a potion of GPU resource proportionally to its demand. Alternatively, priorities strategies can be applied, such as First-Come First Served (FCFS), where resources are assigned to the kernel with the highest priority.
-
-% \paragraph{Interference estimation} To estimate the interference within a group of models deployed on a GPU, we need to determine the interference between the kernels of the different models. Given the set of kernels $K_t$ at a particular time $t$ launched by each model on a GPU, the interference will consist in re-distributing the GPU resources $\Phi$ among all the different kernels in $K_t$. We represent with $\bar{\varphi}_k$ the maximum resource allocable to kernel $k \in K_t$ after the re-distribution according to one of the strategies described before.
-
-% Starting from $\bar{\varphi}_k$, we can then determine the new maximum number of blocks denoted as $\bar{b_k}$ for each kernel $k$ in $K_t$ as defined in equation (1) of~\cite{lim2017autotuninggpukernelsstatic}.
-% Given $\bar{b_k}$, we can finally determine the new GPU occupancy for $k$:
-% \begin{equation}
-% 	\bar{occ}_k = \frac{\mathbf{W}_{b_k} \times \bar{b}_k}{\mathbf{W}},
-% \end{equation}
-% where $\mathbf{W}$ represents the maximum number of active warps per multiprocessors, and $\mathbf{W}_{b_k}$ defines the number of warps that can be activated by the kernel during its execution.
-% With this we can determine the interference time, which we consider to be the time needed for the first $k^*$ kernel to complete its execution. This time is called $\Delta$ and is defined as the minimum from all kernel execution times.
-% \begin{equation}
-% 	\Delta = \min \left\{ d_k \times \frac{occ_k}{\bar{occ}_k} \right\}_{\forall k \in K_t}.
-% \end{equation}
-% Finally, we can determine the additional time or remaining time to compute for each kernel, noted $d'$, as such:
-% \begin{equation}
-% 	d_k' = d_k - \Delta \times \left(1 - \frac{\bar{occ}_k}{occ_k} \right) ,\, \forall k \in K_t.
-% \end{equation}
-
-% Thus, the total duration for each kernel, given the interference, is
-% \begin{equation}
-% 	D_k = d_k' + \Delta.
-% \end{equation}
-
-% \paragraph{Performance Drop}
-% Once a model $m$ has executed all its kernels, it concludes a full round and the new inference time is given by:
-% \begin{equation}
-% 	\bar{T_m} = \sum_{k \in K_m} D_k
-% \end{equation}
-
-% Finally, the performance drop caused by the interference, is given by the increase of the inference time, \ie, the sum of kernels' new durations after interference. The performance drop of the model $m$ is determined as:
-% \begin{equation}\label{eq:perfDrop}
-% 	\mu_m = \frac{\sum_{k\in K_m}(D_k-d_k)}{\sum_{k\in K_m}d_k} = \frac{\bar{T}_m - T_m}{T_m}.
-% \end{equation}
-
-% \subsection{Greedy Algorithm for Model interference}
-
 \subsection{Greedy Algorithm for Estimating Model Interference}
 
-The analytical framework developed above provides a way to estimate performance degradation due to kernel interference across multiple deep neural networks (DNNs) sharing a GPU. However, applying this model exhaustively, by evaluating all possible combinations of kernel alignments across models, is computationally infeasible. For instance, while our previous formulation assumed that all models begin execution with their first kernel simultaneously, a more general scenario would allow each DNN to start from any of its $i$-th kernels (where $1 \leq i \leq q$). Enumerating all such combinations would require constructing a full Cartesian product of starting indices, which leads to exponential growth in the search space. For $N$ concurrent DNNs, this results in a combinatorial explosion, making real-time evaluation impractical.
+The analytical framework developed above provides a way to estimate performance degradation due to kernel interference across multiple deep neural networks (\acrshort{dnn}s) sharing a \acrshort{gpu}. However, applying this model exhaustively, by evaluating all possible combinations of kernel alignments across models, is computationally infeasible. For instance, while our previous formulation assumed that all models begin execution with their first kernel simultaneously, a more general scenario would allow each \acrshort{dnn} to start from any of its $i$-th kernels (where $1 \leq i \leq q$). Enumerating all such combinations would require constructing a full Cartesian product of starting indices, which leads to exponential growth in the search space. For $N$ concurrent \acrshort{dnn}s, this results in a combinatorial explosion, making real-time evaluation impractical.
 
 To address this, we propose a heuristic algorithm that approximates the interference impact efficiently. The pseudocode is presented in Algorithm~\cref{algo:kernel_interference_algorithm}. The key idea is to reduce the search space by:
 
@@ -185,10 +85,10 @@ This greedy, pairwise strategy dramatically reduces computational overhead while
 \begin{equation}
 	\varphi_{k_i} + \varphi_{k_j} > \Phi
 \end{equation}
-In such cases, the delay added to $k_{s_i}$ (i.e., the kernel identified by the starting point $s_i$) is:
+In such cases, the delay added to $k_{s_i}$ (\ie, the kernel identified by the starting point $s_i$) is:
 
 $$
-	\delta_{k_{s_i}} = d_{k_{s_i}} \cdot \frac{occ_{k_{s_i}}}{occ_{k_{s_i}} + occ_{k_{s_j}}}
+	\delta_{k_{s_i}} = d_{k_{s_i}} \cdot \frac{o_{k_{s_i}}}{o_{k_{s_i}} + o_{k_{s_j}}}
 $$
 
 The total delay (additional time) for a given starting pair is:
@@ -218,111 +118,6 @@ $$
 Finally, the performance drop can be determined as defined in~\Cref{eq:performance_drop}.
 
 
-
-% Pair-interference and Starting Combinations.
-
-
-% Identifying the group of models (and hence, kernels) causing that interference is not trivial. To identify such a group, we would need to explore all possible combinations of kernels for all deployed models and verify whether the interference originates from that specific combination. This exploration is not feasible given the combinatorial explosion of the solution space. For this reason, we propose an efficient heuristic that estimates the inference among the kernels of the models deployed on the GPU. The heuristic simulates a set of possible starting points for the interference and limits the solution space to all pairs of starting points of the kernel sequences of every pair of models. In this way, we prove that considering even just an approximation of interference improves the placement of new arriving models that should be deployed on the GPU.
-
-% To simulate concurrent execution scenarios, each model's kernel sequence is partitioned into fixed-size segments. This allows us to define multiple hypothetical starting points from which interference may begin.
-% By generating all combinations of such starting indices across models, we construct a grid of scenarios that reflect different temporal alignments of kernels. These combinations serve as proxies for real-world scheduling offsets, enabling us to explore how interference might evolve depending on when models enter the execution pipeline. More formally, to simulate interference, each kernel sequence is partitioned into segments of size $n$, i.e., $p_i = \left\lfloor \frac{q_i}{n} \right\rfloor$ (line 2 in Algorithm~\cref{algo:kernel_interference_algorithm}). In this way for $n>1$, the combination space is always reduced. Furthermore, rather than constructing the full Cartesian product of starting indices among all models, we adopt a pairwise strategy. For each model pair $(m_i,m_j)$, we generate combinations from their respective sets of starting indices:
-% \begin{equation}
-% 	\mathcal{C}_{i,j} = S_i \times S_j, \quad \text{where } S_i = \{0, n, 2n, \dots, (p_i - 1)n\}
-% \end{equation}
-% This approach significantly reduces computational overhead while preserving the ability to capture localized interference effects between models.
-
-% Each scenario is defined by a pair of starting indices $(s_i, s_j)$, selected from the sets $S_i$ and $S_j$ (line 8 in~\Cref{algo:kernel_interference_algorithm}). These indices specify the positions in each kernel sequence where concurrent execution begins, forming the basis for simulating interference between the two models.
-
-% \paragraph{Interference Simulation.} For each pair $(m_i, m_j)$, $i \neq j$, and each starting index pair $c_{i,j}=(s_i, s_j)$, we simulate kernel-by-kernel execution. We approximate the occurrence of interference with the following new condition:
-% \begin{equation}
-% 	occ_{k_i} + occ_{k_j} > 1.
-% \end{equation}
-% In such cases, the delay added to $k_{s_i}$ (i.e., the kernel identified by the starting point $s_i$) is:
-
-% $$
-% 	\delta_{k_{s_i}} = d_{k_{s_i}} \cdot \frac{occ_{k_{s_i}}}{occ_{k_{s_i}} + occ_{k_{s_j}}}
-% $$
-
-% The total delay (additional time) for a given starting pair is:
-
-% $$
-% 	\Delta^{c_{i,j}} = \sum_{ s_i \leq t \leq q_i} \delta_{k_t}
-% $$
-
-% We can define the representative additional duration as the median:
-
-% $$
-% 	\Delta_{i,j} = \text{median}\left(\left\{ \Delta^{c_{i,j}} \right\}_{\forall c_{i,j} \in \mathcal{C}_{i,j}}\right)
-% $$
-
-% To account for the amount of time two models interact during execution, we introduce a scaling factor that reflects their relative kernel sequence lengths:
-
-% $$
-% 	\gamma_{i,j} = \max\left(\frac{q_i}{q_j}, 1\right)
-% $$
-
-% \paragraph{Determine the new duration} The new duration after interference of model $m_i$ is:
-
-% $$
-% 	\bar{T_{m_i}} = T_{m_i} + \sum_{\substack{j=1 \\ j \neq i}}^{N} \gamma_{i,j} \cdot \Delta_{i,j}
-% $$
-
-% Finally, the performance drop can be determined as defined in~\Cref{eq:perfDrop}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% \subsection{Greedy Algorithm for Model interference and Model Placement}
-
-% Executing the model interference as described above takes times and increases with respect to the number of models to interfere. We have developed a heuristic version to replace our interference algorithm. As an example, we consider a sequence of kernel durations, denoted $d = (d_{k_1}, d_{k_2}, \ldots, d_{k_q}) \in \mathbb{R}^q$, corresponding to a total of $q$ kernels associated with a specific model $m$. The interference mask would be a sliding window mask applied to that vector, where the window size $w$ varies from $\frac{q}{2}$ to $q$. This denotes the window size, corresponding to the number of kernels scheduled for execution that overlap or eventually interfere with those of another model. The masking operation is applied symmetrically from both the beginning and the end of the vector, thereby capturing interference with the first and last $w$ kernels of the model, respectively.
-
-% Let's define the forward mask (beginning) $X^{(f)}_w \in \mathbb{R}^q$ and $w \in \left[ \left\lfloor \frac{q}{2} \right\rfloor ,\, q \right]$ as:
-
-% \begin{equation*}
-% 	X^{(f)}_w[i] =
-% 	\begin{cases}
-% 		0       & \text{if}~i < q-w \\
-% 		d_{k_i} & \text{otherwise}
-% 	\end{cases}
-% 	~\text{for}~i=0,\,1,\,\dots,\,q-1
-% \end{equation*}
-
-% This creates for each window of size $w$, zeroing out elements after which represent kernels that will not interfere.
-
-% For the backward mask $X^{(b)}_w \in \mathbb{R}^q$, and $w \in \left[ q - 1 ,\, \left\lfloor \frac{q}{2} \right\rfloor - 1 \right]$ it would be:
-
-% \begin{equation*}
-% 	X^{(b)}_w[i] =
-% 	\begin{cases}
-% 		0       & \text{if}~i > w  \\
-% 		d_{k_i} & \text{otherwise}
-% 	\end{cases}
-% 	~\text{for}~i=0,1,\dots,q-1
-% \end{equation*}
-
-% This creates a window of size $w$, zeroing out elements before which are considered terminated before interference.
-
-% Finally, the full interference mask $X$, combining all forward and backward masks:
-
-% \begin{equation}
-% 	X =
-% 	\begin{bmatrix}
-% 		X^{(f)}_{\left\lfloor \frac{q}{2} \right\rfloor}     \\
-% 		X^{(f)}_{\left\lfloor \frac{q}{2} \right\rfloor + 1} \\
-% 		\vdots                                               \\
-% 		X^{(f)}_{q}                                          \\
-% 		X^{(b)}_{q - 1}                                      \\
-% 		X^{(b)}_{q - 2}                                      \\
-% 		\vdots                                               \\
-% 		X^{(b)}_{\left\lfloor \frac{q}{2} \right\rfloor - 1}
-% 	\end{bmatrix}
-% \end{equation}
-
-% Each row of the matrix, \ie, $X_w$, is a masked version of $d$, with zeros outside the sliding window.
-
-% Besides the interference mask, we also define a binary probability matrix $P$ with the same size as the matrix interference. That probability stands for each kernel the probability it interferes with full resource utilization, i.e., preventing any other kernel from running with another kernel. This also means that its duration will be added to the other model inference duration.\\
-% By performing an element-wise product of the two matrix $X$ and $P$ we then got the on each row the additional duration that would be added to the initial duration of any other model it interferes with. We can then use the median of each row
-
-
 \begin{algorithm}[t]
 	\caption{Greedy Estimation of Model Interference}
 	\label{algo:kernel_interference_algorithm}
@@ -346,7 +141,9 @@ Finally, the performance drop can be determined as defined in~\Cref{eq:performan
 
 						\While{$k_i < q_i$ and $k_j < q_j$}{
 							\If{$\varphi_{k_i} + \varphi_{k_j} > \Phi$}{
-								Compute additional duration: $\delta \gets \delta + d_{i,k_i} \cdot \frac{occ_{i,k_i}}{occ_{i,k_i} + occ_{j,k_j}}$
+								Compute additional duration:
+
+								$\delta \gets \delta + d_{k_i} \cdot \frac{o_{k_i}}{o_{k_i} + o_{k_j}}$
 							}
 							Increment $k_i$, $k_j$
 						}
@@ -370,17 +167,9 @@ Finally, the performance drop can be determined as defined in~\Cref{eq:performan
 
 \subsection{Placement Algorithm}
 
-The performance drop resulting from GPU resource sharing can be exploited to efficiently place new arriving models after deployment query for a new model variant or in case of upscaling meet the workload demand.
-%With the biggest part now completed which is a way to determine performance drop of model that will be sharing the same GPU resource. By leveraging from that, we can determine the best colocation strategy when it comes to perform a placement whether when a new query arrives and requires a deployment of a new variant or when upscaling is needed to meet query workload demand. 
-When a new model arrives, the objective is to place it in a GPU $g$ so that the average performance drop, denoted by $\bar{\mu}^g$, of all running models and the incoming model is minimal. \Cref{algo:model_placement} describes the proposed procedure to place a new model that needs to be deployed. When a new model $m_{arr}$ arrives, \Cref{algo:kernel_interference_algorithm} is applied sequentially to each GPU $g$ (line 4). The algorithm monitors the average performance drop across all deployed models to ensure it does not exceed an acceptable value, $\lambda$, which serves as a tunable parameter. The value of this parameter is chosen to ensure that the arriving model will not cause a significant performance drop in the already running models. Among all the candidate GPUs that satisfy the constraint $\bar{\mu}^g < \lambda$ (lines 7--9), the one that offers the lowest average performance drop is selected as the final deployment target. It is worth noting that this algorithm can be easily adapted to other objectives, e.g., selecting the GPU that offers the highest throughput or lowest latency. If no suitable GPU is identified, the deployment is deferred.
+The performance drop resulting from \acrshort{gpu} resource sharing can be exploited to efficiently place new arriving models after deployment query for a new model variant or in case of upscaling meet the workload demand.
+When a new model arrives, the objective is to place it in a \acrshort{gpu} $g$ so that the average performance drop, denoted by $\bar{\mu}^g$, of all running models and the incoming model is minimal. \Cref{algo:model_placement} describes the proposed procedure to place a new model that needs to be deployed. When a new model $m_{arr}$ arrives, \Cref{algo:kernel_interference_algorithm} is applied sequentially to each \acrshort{gpu} $g$ (line 4). The algorithm monitors the average performance drop across all deployed models to ensure it does not exceed an acceptable value, $\lambda$, which serves as a tunable parameter. The value of this parameter is chosen to ensure that the arriving model will not cause a significant performance drop in the already running models. Among all the candidate \acrshort{gpu}s that satisfy the constraint $\bar{\mu}^g < \lambda$ (lines 7--9), the one that offers the lowest average performance drop is selected as the final deployment target. It is worth noting that this algorithm can be easily adapted to other objectives, \eg, selecting the \acrshort{gpu} that offers the highest throughput or lowest latency. If no suitable \acrshort{gpu} is identified, the deployment is deferred.
 
-%the highest throughput (or shortest latency, etc.), while maintaining an acceptable performance degradation for model $m_{arr}$, is selected as the optimal deployment target. If no suitable GPU is identified, deployment is deferred.\ff{This does not seem to reflect what is written in the pseudocode. From the last two lines of \Cref{algo:model_placement} it seems that it always selects the GPU with the minimum average performance drop.}
-
-%the algorithm (1) determines which one offers the highest throughput relative to the calculated performance drop, $\mu_{m_{arr}}$, (2) or selects the one that offers the lowest average performance drop. If such a GPU is found, it is returned as the best choice for deployment with minimal performance drop; otherwise, the deployment (or scaling) fails. \ff{This does not seem to reflect what is written in the pseudocode. From the last two lines of \Cref{algo:model_placement} it seems that it always selects the GPU with the minimum average performance drop.}
-
-%Among the candidate GPUs that satisfy the constraint $\mu < \lambda$, the one that offers the highest throughput (or shortest latency, etc.), while maintaining an acceptable performance degradation for model $m_{arr}$, is selected as the optimal deployment target. If no suitable GPU is identified, deployment is deferred.
-
-%This heuristic is faster and takes into account the diversity of GPUs, as models perform differently depending on the GPU hardware used, which influences interference.
 \begin{algorithm}[t]
 	\caption{Model Placement Algorithm}
 	\label{algo:model_placement}
@@ -394,7 +183,7 @@ When a new model arrives, the objective is to place it in a GPU $g$ so that the 
 			Initialize performance drop $\mathcal{P} \gets []$
 			% Initialize $s \in \mathbb{R}^p$ be sequence of performance drops of new model $m_{arr}$.
 
-			\ForEach{ GPU $g$ }{
+			\ForEach{ \acrshort{gpu} $g$ }{
 			$M^g \gets M^g \cup \{m_{arr}\}$
 
 			$\mathbf{\mu}^g \gets performance\_drop($M$)$
@@ -420,11 +209,3 @@ When a new model arrives, the objective is to place it in a GPU $g$ so that the 
 		\end{small}
 	}
 \end{algorithm}
-
-
-
-% With the biggest part now completed which is a way to determine performance drop of model that will be sharing the same GPU resource. By leveraging from that, we can deter- mine the best colocation strategy when it comes to perform a placement whether when a new query arrives and requires a deployment of a new variant or when upscaling is needed to meet query workload demand. When a new model arrives, the aim is to place it in a GPU device $g$ so that the average of the performance drops, denoted by 𝜇, of all running and the incoming model is minimal. The Algorithm 2 give a glimpse about the placement algorithm employs when a new model requires to be deployed. When a want to deploy a new model $m_{arr}$ we perform the interference algorithm (algorithm 1) sequentially on each GPU $g$ ∈ 𝐺. We use average performance drop of all models and make sure that it is not greater than an accepted value 𝜆 as a tunable parameter. This value is chosen to ensure that the arrival model won't cause important performance drop on the already running models. For the GPUs candidates, we then determine the one that gives the highest throughput with respected to computed performance drop, 𝜇, of the arriving model $m_{arr}$. If a such a GPU is found with it return as the best choice for deployment with little performance drop, otherwise nothing is return.
-
-%When a new model arrives, the objective is to assign it to a GPU device $g$ in such a way as to minimize the average performance degradation, denoted $\mu$, across all models. The~\Cref{algo:model_placement} describes the placement procedure used when deploying a new model. More specifically, when deploying a new model $m_{arr}$, the interference evaluation algorithm (\Cref{algo:kernel_interference_algorithm}) is executed sequentially on each GPU $g \in G$. The resulting average performance degradation is then compared to a predefined threshold $\lambda$, which serves as a tunable parameter to ensure that the introduction of model $m_{arr}$ does not significantly alter the performance of existing models.
-
-%Among the candidate GPUs that satisfy the constraint $\mu < \lambda$, the one that offers the highest throughput (or shortest latency, etc.), while maintaining an acceptable performance degradation for model $m_{arr}$, is selected as the optimal deployment target. If no suitable GPU is identified, deployment is deferred.
