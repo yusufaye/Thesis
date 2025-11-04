@@ -56,19 +56,42 @@
 
 % Load the package for hyperreferences
 \usepackage{kaorefs}
-
-\usepackage{glossaries} % List of Terms
-
 \usepackage{subcaption}
+
+
+\usepackage{glossaries}
+
+% Acronym definitions
+\newacronym{dnn}{DNN}{Deep Neural Network}
+\newacronym{ml}{ML}{Machine Learning}
+\newacronym{lstm}{LSTM}{Long Short-Term Memory}
+\newacronym{sm}{SM}{Streaming Multiprocessor}
+\newacronym{cuda}{CUDA}{Compute Unified Device Architecture}
+\newacronym{opencl}{OpenCL}{Open Computing Language}
+\newacronym{gpu}{GPU}{Graphics Processing Unit}
+\newacronym{iot}{IoT}{Internet of Things}
+\newacronym{slo}{SLO}{Service Level Objective}
+\newacronym{tcn}{TCN}{Traffic Control Network}
+\newacronym{yolo}{YOLO}{You Only Live Once}
+\newacronym{ssd}{SSD}{Single Shot Multibox Detector}
+\newacronym{ocr}{OCR}{Optical Character Recognition}
+\newacronym{wrr}{WRR}{Weighted Round Robin}
+\newacronym{cnn}{CNN}{Convolutional Neural Network}
+\newacronym{cpu}{CPU}{Central Processing Unit}
+\newacronym{cudnn}{cuDNN}{CUDA Deep Neural Network library}
+\newacronym{dram}{DRAM}{Dynamic Random-Access Memory}
+\newacronym{mps}{MPS}{Multi-Process Service}
+\newacronym{mig}{MIG}{Multi-Instance GPU}
+\newacronym{ai}{AI}{Artificial Intelligence}
+
+\makeglossaries
 
 % \graphicspath{{examples/documentation/images/}{images/}} % Paths in which to look for images
 
 \makeindex[columns=3, title=Alphabetical Index, intoc] % Make LaTeX produce the files required to compile the index
 
-\input{glossary.tex} % Include the glossary definitions
-\makeglossaries % Make LaTeX produce the files required to compile the glossary
 
-\makenomenclature % Make LaTeX produce the files required to compile the nomenclature
+% \makenomenclature % Make LaTeX produce the files required to compile the nomenclature
 
 % Reset sidenote counter at chapters
 %\counterwithin*{sidenote}{chapter}
@@ -210,16 +233,8 @@
 
 \listoftables % Output the list of tables
 
-%----------------------------------------------------------------------------------------
-%	GLOSSARY
-%----------------------------------------------------------------------------------------
-
-% The glossary needs to be compiled on the command line with 'makeglossaries main' from the template directory
-
-\setglossarystyle{listgroup} % Set the style of the glossary (see https://en.wikibooks.org/wiki/LaTeX/Glossary for a reference)
-\printglossary[title=Special Terms, toctitle=List of Terms] % Output the glossary, 'title' is the chapter heading for the glossary, toctitle is the table of contents heading
-
 \endgroup
+
 
 %----------------------------------------------------------------------------------------
 %	MAIN BODY
@@ -239,6 +254,21 @@
 \input{chapters/efficient_model_cohabitation_in_edge_computing_model_serving.tex}
 
 \input{chapters/conclusion.tex}
+
+
+%----------------------------------------------------------------------------------------
+%	GLOSSARY
+%----------------------------------------------------------------------------------------
+% The glossary needs to be compiled on the command line with 'makeglossaries main' from the template directory
+
+
+\setglossarystyle{listgroup} % Set the style of the glossary (see https://en.wikibooks.org/wiki/LaTeX/Glossary for a reference)
+% \printglossary[type=\acronymtype] % Output the glossary, 'title' is the chapter heading for the glossary, toctitle is the table of contents heading
+\printglossary[type=\acronymtype, title=Special Terms, toctitle=List of Terms] % Output the glossary, 'title' is the chapter heading for the glossary, toctitle is the table of contents heading
+
+%----------------------------------------------------------------------------------------
+%	APPENDIX
+%----------------------------------------------------------------------------------------
 
 % \appendix % From here onwards, chapters are numbered with letters, as is the appendix convention
 
@@ -264,6 +294,8 @@
 
 %-------------------------------------------------
 
+
+
 %----------------------------------------------------------------------------------------
 %	INDEX
 %----------------------------------------------------------------------------------------
@@ -278,12 +310,16 @@
 
 % If you have a PDF/image file that you want to use as a back cover, uncomment the following lines
 
-% \clearpage
-% \thispagestyle{empty}
-% \null%
+\clearpage
+\newpage
 \clearpage
 \includepdf{USMB_couverture_these.pdf}
 
 %----------------------------------------------------------------------------------------
 
 \end{document}
+
+
+% pdflatex main.tex
+% makeglossaries main
+% pdflatex main.tex

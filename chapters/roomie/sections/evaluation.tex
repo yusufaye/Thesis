@@ -1,7 +1,7 @@
 \section{Evaluation}
 
 \subsection{Experimental Setup}
-\label{sec:setup}
+\label{sec:roomie_setup}
 
 
 \paragraph{Baselines.} We evaluate {\roomie} against two different state-of-the-art baselines: INFaaS and Usher. INFaaS performs accuracy scaling by scaling variants within the same worker to meet demand. Usher, on the other hand, groups compute-heavy models with memory-heavy models within a group. We have used different models from two family groups, namely classification and detection, to evaluate our solution and baselines. We consider that each incoming query is intended for a single inference model.
@@ -15,7 +15,7 @@
 		\textbf{Model}            & \textbf{CPU}                                & \textbf{\acrshort{gpu}}                                                 \\
 		\toprule
 
-		Nvidia Jetson AGX Xavier  & 1 CPU/node, 8 cores/CPU                     & Nvidia AGX Xavier, CC~\footnote{CC: Compute capability}: 7.2 \\
+		Nvidia Jetson AGX Xavier  & 1 CPU/node, 8 cores/CPU                     & Nvidia AGX Xavier, Compute Capability (CC): 7.2 \\
 
 		\midrule
 
@@ -249,21 +249,20 @@ These findings confirm that {\roomie} is the most effective \acrshort{dnn} deplo
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/absolute_error.pdf}
 		\subcaption{Performance Gap Relative to Optimal Deployment.}
+		\label{fig:performance_gap:gap}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/percentage_wins.pdf}
 		\subcaption{Proportion of Trials Where {\roomie} Outperforms Usher.}
+		\label{fig:performance_gap:proportion}
 	\end{subfigure}
 	\caption{{\roomie} maintains deployment error within 7–8\% of the optimal and outperforms Usher in nearly 90\% of evaluated scenarios, demonstrating robust accuracy and generalization under high concurrency.}
 	\label{fig:performance_gap}
 	\vspace{-3mm}
 \end{figure}
 
-This section investigates the efficacy of {\roomie} for the deployment of \acrshort{dnn}s across a varying number of GPUs, specifically between two and five. For each configuration, the quantity of \acrshort{dnn}s to be deployed was randomly selected from a range of two to three times the number of GPUs, guided by predefined options outlined in~\Cref{tab:dnn-models}. More than 100 randomized evaluations were conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations were thoroughly assessed to determine the configuration that resulted in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher were then applied to the same scenarios, and their absolute errors relative to the optimal were recorded. The results are summarized in two plots: the first illustrates the average performance gap across configurations, while the second quantifies the proportion of trials in which {\roomie} outperforms Usher.
+This section investigates the effectiveness of {\roomie} for the deployment of \acrshort{dnn}s across a varying number of GPUs, specifically between six and eight. For each configuration, the number of \acrshort{dnn}s to be deployed was randomly selected from a range of 2--3$\times$ the number of GPUs, guided by predefined options outlined in~\Cref{tab:dnn-models}. More than 1500 randomized evaluations were conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations were thoroughly assessed to determine the configuration that resulted in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher were then applied to the same scenarios, and their absolute errors relative to the optimal were recorded. The results are summarized in~\Cref{fig:performance_gap}. The~\Cref{fig:performance_gap:gap} illustrates the average performance gap across configurations, while the~\Cref{fig:performance_gap:proportion} quantifies the proportion of trials in which {\roomie} outperforms Usher.
 
-
-The comparative analysis highlights {\roomie}'s consistent superiority in deployment accuracy across all concurrency levels. Its success in nearly 90\% of randomized trials reflects a design that is not only structurally aware but also resilient to the practical limitations of kernel-level modeling. Unlike Usher, which applies static heuristics that overlook the dynamic nature of interference, {\roomie} adapts to the complexities introduced by concurrent execution. Crucially, the residual error observed in {\roomie}'s deployments stems not from heuristic misalignment, but from the inherent challenges of profiling-based estimation. Tools such as Nsight-Compute, while indispensable for capturing fine-grained kernel behavior, introduce latency and measurement distortion that complicate performance inference. {\roomie}'s strategy—built on isolated trace analysis and representative overlap simulation—manages these distortions without relying on exhaustive enumeration. Moreover, as concurrency increases, {\roomie} demonstrates robustness in the face of combinatorial explosion, where asynchronous kernel alignment across models creates an exponentially growing space of interference scenarios. That {\roomie} maintains bounded error under these conditions affirms its capacity to balance fidelity with scalability, offering a principled alternative to heuristics that fail to account for architectural nuance.
-
-% In summary, {\roomie} demonstrates robust and scalable deployment accuracy across randomized trials, consistently outperforming Usher and maintaining close proximity to optimal configurations. Its ability to navigate the complexities of multi-model GPU scheduling—despite profiling distortion and concurrency-induced ambiguity—positions it as a principled and practical solution for performance-sensitive deployment. The residual error, while present, is bounded and interpretable, reinforcing {\roomie}'s value as an interference-aware strategy grounded in realistic modeling assumptions.
+The comparative analysis highlights {\roomie}'s consistent superiority in deployment accuracy across all concurrency levels. Its success in nearly 90\% of randomized trials reflects a design that is not only structurally aware but also resilient to the practical limitations of kernel-level modeling. Unlike Usher, which applies static heuristics that overlook the dynamic nature of interference, {\roomie} adapts to the complexities introduced by concurrent execution. Crucially, the residual error observed in {\roomie}'s deployments stems not from heuristic misalignment, but from the inherent challenges of profiling-based estimation. Tools such as Nsight-Compute, while indispensable for capturing fine-grained kernel behavior, introduce latency and measurement distortion that complicate performance inference. {\roomie}'s strategy, based on the analysis of isolated traces and representative overlap simulation, effectively manages these distortions without resorting to exhaustive enumeration. Moreover, as concurrency increases, {\roomie} demonstrates robustness in the face of combinatorial explosion, where kernel alignment across models creates an exponentially growing space of interference scenarios. That {\roomie} maintains bounded error under these conditions affirms its capacity to balance fidelity with scalability, offering a principled alternative to heuristics that fail to account for architectural nuance.
