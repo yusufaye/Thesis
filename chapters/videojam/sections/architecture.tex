@@ -37,17 +37,17 @@ In {\videojam}'s system of load balancers, each component computes its state and
 
 In {\videojam}, the system state is computed periodically and represents the current state of the load balancer based on the incoming load from the previous function in the pipeline, the processing rate, the queue size, and the offload rate to its neighbors. Here we formally describe the computation of the system state.
 
-\paragraph{Operational Time Windows.} Each load balancer associated to function $c$, operates over a time windows $W^k_j$, which consists of $k \in \mathbb{N}^+$ consecutive time-slots and is defined as
+\paragraph{Operational Time Windows.} Each load balancer associated to function $c$, operates over a time windows $W^k_j$, which consists of $k \in \mathbb{N}^+$ consecutive time-slots and is defined as:
 
-\begin{equation*}
-    W_{j} = W^k_{j} = \{w_i\}^k_{i=1},
-\end{equation*}
+\begin{equation}
+    W^k_{j} = \{w_i\}^k_{i=1},
+\end{equation}
 
 where $w_i$ is the $i^{th}$ time-slot of the time window. All the time-slots within the time window have the same duration of $\Delta$ seconds. The next time window is denoted as $W_{j+1}$.
 
-Each load balancer $S_{c,n}$ is characterized by its state, and keeps track of the states of all its neighbors (identified by $\mathcal{S}^*_{c}$) in a table. We further indicate with $S_{c}$ the set of all load balancers associated to function $c$ deployed among the edge nodes. 
+Each load balancer $S_{c,n}$, representing the $n^{th}$ instance assigned to function $c$, is defined by its internal state. It maintains a table that records the states of its neighboring load balancers, denoted by the set $\mathcal{S}^*_{c}$. Additionally, we define $\mathcal{S}_{c}$ as the complete set of load balancers associated with function cc and deployed across the edge nodes.
 
-\paragraph{State.} At each time window $W^k_{j} = \{w_i\}^k_{i=1}$, the state of load balancer $S_{c,n}$ is defined by (i) its processing rate $\mu_{c,n}$, (ii) the historical incoming load $\{\lambda^{c,n}_{w_i}\}_{w_i \in W^h_j}$ of $h \ge k$ previous time-slots, (iii) its current queue size $\varphi^{c,n}_{W_j}$, and (iv) the offload $\delta^c_n$, \ie, the total workload offloaded towards its neighbors. The table of each load balancer contains an estimation of all its neighbors' states. Such an estimation is based on the last information the load balancer has received from the neighborhood and it is updated every $r$ time windows. When this time expired, \ie, $r=0$, the load balancer sends an information request to the neighborhood. As shown in~\Cref{fig:load_balancer}, the interaction of the two main components, \ie, the \textit{Monitor} and the \textit{Dispatcher}, of each load balancer, determines the final offloading policy. We describe in detail how the di\textit{Dispatcher}spatcher calculates the offloading policy in the next section.
+\paragraph{State.} At each time window $W^k_{j}$, the state of load balancer $S_{c,n}$ is defined by (i) its processing rate $\mu_{c,n}$, (ii) the historical incoming load $\{\lambda^{c,n}_{w_i}\}_{w_i \in W^h_j}$ of $h \ge k$ previous time-slots, (iii) its current queue size $\varphi^{c,n}_{W_j}$, and (iv) the offload $\delta^c_n$, \ie, the total workload offloaded towards its neighbors. The table of each load balancer contains an estimation of all its neighbors' states. Such an estimation is based on the last information the load balancer has received from the neighborhood and it is updated every $r$ time windows. When this time expired, \ie, $r=0$, the load balancer sends an information request to the neighborhood. As shown in~\Cref{fig:load_balancer}, the interaction of the two main components, \ie, the \textit{Monitor} and the \textit{Dispatcher}, of each load balancer, determines the final offloading policy. We describe in detail how the \textit{Dispatcher} calculates the offloading policy in the next section.
 
 The \textit{Monitor} is in charge of monitoring the state and performance of the load balancer over time. More precisely, it supervises the incoming load from the prior function in the pipeline, and the processing rate. At each time-slot $w_i$ of a given time window, the \textit{Monitor} measures the amount of workload $\lambda^{c,n}_{w_i}$ coming from the previous function in the pipeline. At the end of each time window, the \textit{Monitor} updates the historical incoming load of the state of the load balancer by shifting its $h-k$ values to the left and replacing the last $k$ values with the load received in the window $W_{j}$. After such an update, the \textit{Monitor} triggers the \textit{Dispatcher} for the computation of the load balancing policy.
 
@@ -70,7 +70,7 @@ by adding (i) the difference between the incoming load and the processing rate, 
 \end{equation}
 where, $\delta^c_{m} = \sum_{p \in \mathcal{N}} \delta^c_{m \mid p}$, $\delta^c_{m \mid p}$ is the offload between $S_{c,m}$ and $S_{c,p}$, where $\delta^c_{m \mid p} < 0$ if data is offloaded from $S_{c,m}$ to $S_{c,p}$, and $\delta^c_{m \mid p} > 0$ if $S_{c,p}$ is sending data to $S_{c,m}$.
 
-\paragraph{Predict Future Incoming Workload.} The load balancer forecasts its load and the incoming load of its neighbors for the next time window. For such predictions we rely on a convolution-based neural network model used to predict short-term workload~\cite{kombi2017preventive} (more details on the model are available in~\Cref{sec:implementation}). The input of the predictive model is the historical incoming load $W_h$ (\ie, $\{\lambda^{c,n}_{w_i}\}$ consisting of $h \ge k$ previous time-slots) for all load balancers. While the output is the incoming load for the next window $W_{j+1}$. So when the predicted workload deviates from the actual workload during the monitoring phase, the \textit{Monitor} can detect it and react to make adjustments at any time.
+\paragraph{Predict Future Incoming Workload.} The load balancer forecasts its load and the incoming load of its neighbors for the next time window. For such predictions we rely on a convolution-based neural network model used to predict short-term workload~\cite{kombi2017preventive} (more details on the model are available in~\Cref{sec:implementation}). The input of the predictive model is the historical incoming load $W_h$ (\ie, $\{\lambda^{c,n}_{w_i}\}$ consisting of $h \ge k$ previous time-slots) for all load balancers. While the output is the incoming load for the next window $W_{j+1}$. When the predicted workload deviates from the actual workload during the monitoring phase, the \textit{Monitor} can detect it and react to make adjustments at any time.
 
 \paragraph{Offloading Policy Computation.} 
 Within a given time window $W_{j}$, each load balancer $S_{c,n}$ determines the offloading policy, \ie, $\delta_{n|m}^c$ for each $S_{c,m} \in \mathcal{S}_{c}$ for the next time-window $W_{j+1}$. Such a policy is computed through the following steps: 
@@ -84,7 +84,7 @@ Within a given time window $W_{j}$, each load balancer $S_{c,n}$ determines the 
 
 (ii)~Then, based on the estimation of the global load, each load balancer $S_{c,n}$ estimates the actual load that every load balancer in $\mathcal{S}_{c}$ should handle:
 \begin{equation}
-    \bar{\phi}_{c,n} = \frac{\sum_{n \in \mathcal{N}}\tilde{\phi}_{c,n} \times \mu_{c,n}}{\sum_{n \in \mathcal{N}} \mu_{c,n}}, %\forall n \in \mathcal{N}
+    \bar{\phi}_{c} = \frac{\sum_{n \in \mathcal{N}}\tilde{\phi}_{c,n} \times \mu_{c,n}}{\sum_{n \in \mathcal{N}} \mu_{c,n}}, %\forall n \in \mathcal{N}
     \label{eqn:balanced_load_estimation}
 \end{equation}
 where $\tilde{\phi}_{c,n}$ is the global load that should be processed by $S_{c,n}$ with a process rate of $\mu_{c,n}$, and $\sum_{n \in \mathcal{N}} \mu_{c,n}$ is the total processing capacity of all the load balancers associated to function $c$.
@@ -98,61 +98,67 @@ Positive values for $\theta_{c,n}$ indicate that the function associated to the 
 
 (iv)~Finally, the amount of workload to be offloaded towards each neighbor $S_{c,m}$, \ie, the offloading policy $\delta^c_{n \mid m}$, is finally computed based on $\theta_{c,n}$ as described from line 14 to 27 of~\Cref{algo:dispatcher}. Until all the $\theta$'s are set to $0$, the \textit{Dispatcher} takes the most loaded $S_{c,n}$ to balance to the least leaded $S_{c,m}$ in $S_c$. The load is transferred from $S_{c,n}$ to $S_{c,m}$ if there is enough room for the load, and the unbalanced load of $S_{c,n}$ is set to $0$. Otherwise, $S_{c,n}$ transfers to $S_{c,m}$ the maximum load that can be received $\theta_{c,m}$ and the unbalanced load of the receiver is set to $0$.
 
+
 \begin{algorithm}[t]
-\caption{\textit{Dispatcher} algorithm procedure}
+\caption{Dispatcher Algorithm Procedure}
 \label{algo:dispatcher}
 \SetAlgoLined
-\SetKwProg{Fn}{Function}{}{end} % Function name(args) [...] end
-\Fn{dispatcher($\varphi$, $\lambda$, $\mu$, $\delta$, $\mathcal{S}_{c}$)}
-{
+\SetKwProg{Fn}{Function}{}{end}
+\Fn{dispatcher($\varphi$, $\lambda$, $\mu$, $\delta$, $\mathcal{S}_{c}$)}{
 \begin{small}
-\tcc{1. Determine the queue size}
-$\varphi^{c,n}_{W_{j+1}} = getQsize()$
+\tcc{Initialize queue size for the load balancer $S_{c,n}$}
+$\varphi^{c,n}_{W_{j+1}} \gets getQsize()$
 
-\tcc{1. Estimation load for neighbors, \ie, $\mathcal{S}_c^*$}
-\For{ $S_{c,m} \in \mathcal{S}_{c}^*$ } 
-{
-    $\tilde{\varphi}^{c,m}_{W_{j+1}} = \tilde{\varphi}^{c,m}_{W_{j}} + \sum_{w_i \in W_{j}}(\lambda^{c,m}_{w_i} - \mu_{c,m}) + \delta^c_{m}$\;
-}
-\For{ $S_{c,n} \in \mathcal{S}_{c}$ }
-{
-    \tcc{2. Forecast the future incoming load, \ie, $\lambda^{c,n}_{w_i}, w_i \in W_{j+1}$}
-    $\lambda^{c,n}_{w_i} = model(\{\lambda^{c,n}_{w_i}\}_{w_i \in W^h})$\;
-
-    \tcc{Estimation of global load}
-    $\tilde{\phi}_{c,n} = \tilde{\varphi}^{c,n}_{W_{j+1}} + \sum_{w_i \in W_{j+1}} \lambda^{c,n}_{w_i}$\;
+\tcc{1: Estimate future queue sizes for neighboring load balancers in $\mathcal{S}_c^*$}
+\ForEach{$S_{c,m} \in \mathcal{S}_{c}^*$}{
+    \tcc{Update based on previous queue size, incoming load, service rate, and offloaded load}
+    $\tilde{\varphi}^{c,m}_{W_{j+1}} \gets \tilde{\varphi}^{c,m}_{W_{j}} + \sum_{w_i \in W_{j}}(\lambda^{c,m}_{w_i} - \mu_{c,m}) + \delta^c_{m}$
 }
 
+\tcc{2: Forecast future incoming load and compute estimated global load}
+\ForEach{$S_{c,n} \in \mathcal{S}_{c}$}{
+    \tcc{Predict incoming load for next window using historical data}
+    $\lambda^{c,n}_{w_i} \gets model(\{\lambda^{c,n}_{w_i}\}_{w_i \in W^h})$
 
-\tcc{Compute the unbalanced load}
-\For{ $S_{c,n} \in \mathcal{S}_{c}$ }
-{
-    \tcc{balanced load $\bar{\phi}_{c,n}$}
-    $\bar{\phi}_{c,n} = \frac{\sum_{n \in \mathcal{N}}\tilde{\phi}_{c,n} \times \mu_{c,n}}{\sum_{n \in \mathcal{N}} \mu_{c,n}}$\;
-    \tcc{unbalanced load}
-    $\theta_{c,n} = \bar{\phi}_{c} - \tilde{\phi}_{c,n}$
+    \tcc{Estimate total future load (queue + predicted incoming load)}
+    $\tilde{\phi}_{c,n} \gets \tilde{\varphi}^{c,n}_{W_{j+1}} + \sum_{w_i \in W_{j+1}} \lambda^{c,n}_{w_i}$
 }
 
-\tcc{3. Compute the offloading policy}
-\While{ $\text{any($\theta_{c,n} < 0$) and any($\theta_{c,n} > 0$)}$ }
-{
-    \tcc{the most overloaded}
-    $n = argmin(\theta_{c})$\;
-    \tcc{the less overloaded}
-    $m = argmax(\theta_{c})$\;
-    $q = \lvert \theta_{c,n} \lvert$\;
-    \uIf{ $q < \theta_{c,m}$ }{
-        \tcc{load from $S_{c,n}$ to $S_{c,m}$}
-        $\delta^c_{n \mid m} = q$\;
-        $\theta_{c,n} = 0$\;
-        $\theta_{c,m} = \theta_{c,m} - q$\;
+\tcc{3: Compute load imbalance across all load balancers}
+\ForEach{$S_{c,n} \in \mathcal{S}_{c}$}{
+    \tcc{Calculate ideal balanced load based on service rates}
+    $\bar{\phi}_{c} \gets \frac{\sum_{n \in \mathcal{N}} \tilde{\phi}_{c,n} \times \mu_{c,n}}{\sum_{n \in \mathcal{N}} \mu_{c,n}}$
+
+    \tcc{Compute deviation from balanced load}
+    $\theta_{c,n} \gets \bar{\phi}_{c} - \tilde{\phi}_{c,n}$
+}
+
+\tcc{4: Apply offloading policy to redistribute excess load}
+\While{any($\theta_{c,n} < 0$) and any($\theta_{c,n} > 0$)}{
+    \tcc{Identify most overloaded and least loaded servers}
+    $o \gets \argmin(\theta_{c})$ \tcp{Most overloaded}
+    $u \gets \argmax(\theta_{c})$ \tcp{Least loaded}
+
+    \tcc{Amount of load to offload}
+    $q \gets |\theta_{c,o}|$
+
+    \uIf{$q < \theta_{c,u}$}{
+        \tcc{Offload $q$ units from $o$ to $u$}
+        $\delta^c_{o \mid u} \gets q$
+        
+        $\theta_{c,o} \gets 0$
+        
+        $\theta_{c,u} \gets \theta_{c,u} - q$
     }
     \Else{
-        $\delta^c_{n \mid m} = \theta_{c,m}$\;
-        $\theta_{c,n} = \theta_{c,n} + \theta_{c,m}$\;
-        $\theta_{c,m} = 0$\;
+        \tcc{Offload maximum possible from $o$}
+        $\delta^c_{o \mid u} \gets \theta_{c,u}$
+        
+        $\theta_{c,o} \gets \theta_{c,o} + \theta_{c,u}$
+        
+        $\theta_{c,u} \gets 0$
     }
 }
 \end{small}
-    }
+}
 \end{algorithm}

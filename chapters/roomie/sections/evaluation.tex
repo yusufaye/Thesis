@@ -6,11 +6,11 @@
 
 \paragraph{Baselines.} We evaluate {\roomie} against two different state-of-the-art baselines: INFaaS and Usher. INFaaS performs accuracy scaling by scaling variants within the same worker to meet demand. Usher, on the other hand, groups compute-heavy models with memory-heavy models within a group. We have used different models from two family groups, namely classification and detection, to evaluate our solution and baselines. We consider that each incoming query is intended for a single inference model.
 
-\paragraph{Deployment Infrastructure.} We conducted our experiments using two distinct deployment types: a cluster of Jetson Nanos and a cluster of larger \acrshort{gpu}s. The first consisted of $3\times$ machines equipped with $4\times$ Nvidia \textit{A100-SXM4-40GB (40 GiB)}. The second consisted of $12\times$ \textit{Nvidia Jetson AGX Xavier} \acrshort{gpu}s. Each \acrshort{gpu} is assigned to a docker to form a server, making a total of 12 servers for each deployment. We also used $2\times$ \textit{HPE Proliant DL360 Gen10+} the client requesting the model and a controller responsible for serving requests to workers. The full specifications are presented in \Cref{tab:serve_config}.
+\paragraph{Deployment Infrastructure.} We conducted our experiments using two distinct deployment types: a cluster of Jetson Nanos and a cluster of larger \glspl{gpu}. The first consisted of $3\times$ machines equipped with $4\times$ Nvidia \textit{A100-SXM4-40GB (40 GiB)}. The second consisted of $12\times$ \textit{Nvidia Jetson AGX Xavier} \glspl{gpu}. Each \gls{gpu} is assigned to a docker to form a server, making a total of 12 servers for each deployment. We also used $2\times$ \textit{HPE Proliant DL360 Gen10+} the client requesting the model and a controller responsible for serving requests to workers. The full specifications are presented in \Cref{tab:serve_config}.
 
 \begin{table}
 	\centering
-	\begin{tabular}{p{2cm}p{3cm}p{3cm}}
+	\begin{tabular}{p{.2\linewidth}p{.35\linewidth}p{.35\linewidth}}
 		\toprule
 		\textbf{Model}            & \textbf{CPU}                                & \textbf{\acrshort{gpu}}                                                 \\
 		\toprule
@@ -35,12 +35,12 @@
 	\label{tab:serve_config}
 \end{table}
 
-\paragraph{Datasets.} We evaluated our system and baseline methods using both synthetic and real-world workloads. For the real workload, we adopt the Twitter trace 2020 dataset~\cite{twitterStreamTrace2020}, as it is particularly suitable for modeling inference services, as tweets are commonly subjected to~\acrfull{dnn} processing before publication~\cite{francisco2021infaas,ahmad2024proteus}. Since the trace is aggregated at a coarse temporal granularity of one second, we apply a Poisson process to model intra-second arrival times and use a Zipf distribution to distribute queries among models, in line with established methodology~\cite{francisco2021infaas,ahmad2024proteus}.
-For synthetic workloads, we generated average request rates per second using a Gaussian process and applied the same Zipf-based model allocation. To ensure our evaluation captures a broad spectrum of inference behavior, we selected a diverse and representative set of~\acrshort{dnn} models. These include both high-performance classification architectures and widely adopted object detection frameworks, enabling us to rigorously assess system behavior under varied computational and latency profiles. The full list of models is summarized in~\Cref{tab:dnn-models}, reflecting the breadth and relevance of our evaluation design.
+\paragraph{Datasets.} We evaluated our system and baseline methods using both synthetic and real-world workloads. For the real workload, we adopt the Twitter trace 2020 dataset~\cite{twitterStreamTrace2020}, as it is particularly suitable for modeling inference services, as tweets are commonly subjected to~\gls{dnn} processing before publication~\cite{francisco2021infaas,ahmad2024proteus}. Since the trace is aggregated at a coarse temporal granularity of one second, we apply a Poisson process to model intra-second arrival times and use a Zipf distribution to distribute queries among models, in line with established methodology~\cite{francisco2021infaas,ahmad2024proteus}.
+For synthetic workloads, we generated average request rates per second using a Gaussian process and applied the same Zipf-based model allocation. To ensure our evaluation captures a broad spectrum of inference behavior, we selected a diverse and representative set of~\gls{dnn} models. These include both high-performance classification architectures and widely adopted object detection frameworks, enabling us to rigorously assess system behavior under varied computational and latency profiles. The full list of models is summarized in~\Cref{tab:dnn_models}, reflecting the breadth and relevance of our evaluation design.
 
 \begin{table}[h]
-	\centering \caption{Categorization of \acrlong{dnn} Models Used in Evaluation} \label{tab:dnn-models}
-	\begin{tabular}{p{4cm}p{6cm}}
+	\centering \caption{Categorization of \acrlong{dnn} Models Used in Evaluation} \label{tab:dnn_models}
+	\begin{tabular}{p{.3\linewidth}p{.6\linewidth}}
 		\hline
 		\textbf{Category} & \textbf{Models}
 		\\ \hline
@@ -70,175 +70,175 @@ For synthetic workloads, we generated average request rates per second using a G
 	\end{tabular}
 \end{table}
 
-\paragraph{Evaluation Metrics.} To evaluate the effectiveness of each \acrshort{dnn} deployment strategy, the assessment focused on four key performance indicators. Response time measured how quickly the models delivered results, which is a critical indicator of real-time performance. The processing rate indicated the percentage of requests successfully processed, highlighting the reliability of the system for different workloads. Throughput measured the number of requests processed in a given time frame, providing insight into overall capacity and scalability. Finally, \acrshort{gpu} utilization monitored the degree of hardware resource usage during model execution.
+\paragraph{Evaluation Metrics.} To evaluate the effectiveness of each \gls{dnn} deployment strategy, the assessment focused on four key performance indicators. Response time measured how quickly the models delivered results, which is a critical indicator of real-time performance. The processing rate indicated the percentage of requests successfully processed, highlighting the reliability of the system for different workloads. Throughput measured the number of requests processed in a given time frame, providing insight into overall capacity and scalability. Finally, \gls{gpu} utilization monitored the degree of hardware resource usage during model execution.
 
 
-\subsection{Performance Evaluation of Cloud-Based \acrshort{gpu} Cluster Solutions}
+\subsection{Performance Evaluation of Cloud-Based \gls{gpu} Cluster Solutions}
 
-To assess the effectiveness of our proposed deployment strategy, we conducted a comprehensive evaluation using a cloud-based \acrshort{gpu} cluster comprising 12$\times$ \acrshort{gpu}s and all~\acrshort{dnn} models detailed in~\Cref{tab:dnn-models}. The experiments were performed using two distinct datasets: real-world Twitter data and synthetically generated data. These synthetic workloads were constructed to mimic real-world traffic patterns while allowing precise manipulation of query rates. This enabled a more granular analysis of system behavior under stress. These datasets were used to simulate varying workload intensities, beginning with low traffic levels that all models could handle and gradually increasing until system saturation was observed.
+To assess the effectiveness of our proposed deployment strategy, we conducted a comprehensive evaluation using a cloud-based \gls{gpu} cluster comprising 12$\times$ \glspl{gpu} and all~\gls{dnn} models detailed in~\Cref{tab:dnn_models}. The experiments were performed using two distinct datasets: real-world Twitter data and synthetically generated data. These synthetic workloads were constructed to mimic real-world traffic patterns while allowing precise manipulation of query rates. This enabled a more granular analysis of system behavior under stress. These datasets were used to simulate varying workload intensities, beginning with low traffic levels that all models could handle and gradually increasing until system saturation was observed.
 
 \paragraph{Evaluation on Twitter dataset.}
 
-\begin{figure}[h!]
+\begin{figure*}[h!]
 	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/response_time.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/response_time.pdf}
 		\subcaption{Response time.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/normalized.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/normalized.pdf}
 		\subcaption{Processing rate.}
 	\end{subfigure}
 	
 	\vspace{0.5cm} % Space between the rows
 	
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/goodput.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/gpu_utilization.pdf}
-		\subcaption{\acrshort{gpu} utilization}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/gpu_utilization.pdf}
+		\subcaption{\gls{gpu} utilization}
 	\end{subfigure}
 	
 	\caption{{\roomie} achieves up to 17$\times$ faster response times while delivering similar processing rates in a cloud-based evaluation using the Twitter dataset, outperforming INFaaS and Usher under high workload conditions.}
 	\label{fig:NvidiaA100/twitter-all-models}
-\end{figure}
+\end{figure*}
 
 
-\Cref{fig:NvidiaA100/twitter-all-models} shows the performance results obtained from the Twitter database. Under low workload conditions, all approaches showed comparable response times. However, as the workload increased, significant performance disparities emerged. Notably, {\roomie} achieved response times up to 17× faster than rival solutions and maintained a processing rate above 97\%. In contrast, Usher's strategy of co-locating large models with lightweight models failed to deliver satisfactory performance under high load, resulting in increased latency and reduced goodput. INFaaS, which scales \acrshort{dnn}s on workers already hosting a copy, showed moderate goodput performance. However, this approach is agnostic to model interference, leading to latency increases of up to 17× and a decline in processing rate.
+\Cref{fig:NvidiaA100/twitter-all-models} shows the performance results obtained from the Twitter database. Under low workload conditions, all approaches showed comparable response times. However, as the workload increased, significant performance disparities emerged. Notably, {\roomie} achieved response times up to 17× faster than rival solutions and maintained a processing rate above 97\%. In contrast, Usher's strategy of co-locating large models with lightweight models failed to deliver satisfactory performance under high load, resulting in increased latency and reduced goodput. INFaaS, which scales \glspl{dnn} on workers already hosting a copy, showed moderate goodput performance. However, this approach is agnostic to model interference, leading to latency increases of up to 17× and a decline in processing rate.
 
-Interestingly, despite low \acrshort{gpu} utilization across all approaches, we observe a significant increase in response time as workload intensifies. This counterintuitive behavior can be attributed to the saturation of large models, which become unable to keep pace with incoming queries. As these models reach their computational limits, they begin to queue requests, leading to latency explosions—even though the \acrshort{gpu} itself remains underutilized. Additionally, interference between co-located models can further degrade responsiveness, compounding delays without a corresponding rise in \acrshort{gpu} activity. One potential mitigation strategy is to increase batch sizes, which can improve utilization by amortizing overhead across multiple queries. However, this approach introduces a trade-off: larger batches may inflate response times, making it unsuitable for latency-sensitive applications. These findings underscore the need for deployment strategies that go beyond raw utilization metrics and account for model saturation dynamics and cross-model interference.
+Interestingly, despite low \gls{gpu} utilization across all approaches, we observe a significant increase in response time as workload intensifies. This counterintuitive behavior can be attributed to the saturation of large models, which become unable to keep pace with incoming queries. As these models reach their computational limits, they begin to queue requests, leading to latency explosions—even though the \gls{gpu} itself remains underutilized. Additionally, interference between co-located models can further degrade responsiveness, compounding delays without a corresponding rise in \gls{gpu} activity. One potential mitigation strategy is to increase batch sizes, which can improve utilization by amortizing overhead across multiple queries. However, this approach introduces a trade-off: larger batches may inflate response times, making it unsuitable for latency-sensitive applications. These findings underscore the need for deployment strategies that go beyond raw utilization metrics and account for model saturation dynamics and cross-model interference.
 
 
 \paragraph{Evaluation on synthetic dataset.}
 
-\begin{figure}[h!]
+\begin{figure*}[h!]
 	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/response_time.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/response_time.pdf}
 		\subcaption{Response time.}
 		\label{fig:NvidiaA100/synthetic-all-models/response-time}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/normalized.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/normalized.pdf}
 		\subcaption{Processing rate.}
 	\end{subfigure}
 	
 	\vspace{0.5cm} % Space between the rows
 	
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/goodput.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/gpu_utilization.pdf}
-		\subcaption{\acrshort{gpu} utilization.}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/gpu_utilization.pdf}
+		\subcaption{\gls{gpu} utilization.}
 	\end{subfigure}
 	\caption{In cloud-based evaluation using synthetic workloads, {\roomie} yields 9.2× faster response time and higher processing rate, confirming its deployment efficiency in controlled stress scenarios.}
 	\label{fig:NvidiaA100/synthetic-all-models}
 	\vspace{-3mm}
-\end{figure}
+\end{figure*}
 
 
 \Cref{fig:NvidiaA100/synthetic-all-models/response-time} illustrates the results of the evaluation conducted with a synthetic dataset designed to emulate diverse and controlled workload scenarios.\\
 The performance trends observed with the synthetic dataset closely mirrored those seen with the Twitter data. {\roomie} consistently outperformed other deployment strategies, achieving a 9.2× reduction in response time and superior throughput and processing rates. These gains are attributed to {\roomie}'s intelligent model deployment and colocation strategy, which minimizes interference and maximizes resource efficiency.
 
-Overall, across both datasets, {\roomie} demonstrated robust performance under varying workload conditions. It consistently achieved lower response times—up to 17× faster, and higher processing rate than competing approaches, validating its effectiveness in cloud-based \acrshort{gpu} environments.
+Overall, across both datasets, {\roomie} demonstrated robust performance under varying workload conditions. It consistently achieved lower response times—up to 17× faster, and higher processing rate than competing approaches, validating its effectiveness in cloud-based \gls{gpu} environments.
 
 
 
-\subsection{Performance Evaluation on Edge Devices Using Jetson Xavier \acrshort{gpu}s}
+\subsection{Performance Evaluation on Edge Devices Using Jetson Xavier \glspl{gpu}}
 
-To further validate our approach, we conducted a second set of experiments using a cluster of 12 Jetson Xavier \acrshort{gpu}s, representative of resource-constrained edge computing environments. As in the cloud-based evaluation, we deployed 12 models (from~\Cref{tab:dnn-models}) and tested performance using Twitter data and synthetic data, gradually increasing the workload intensity.
+To further validate our approach, we conducted a second set of experiments using a cluster of 12 Jetson Xavier \glspl{gpu}, representative of resource-constrained edge computing environments. As in the cloud-based evaluation, we deployed 12 models (from~\Cref{tab:dnn_models}) and tested performance using Twitter data and synthetic data, gradually increasing the workload intensity.
 
 \paragraph{Evaluation on twitter dataset.}
 
-\begin{figure}[h!]
+\begin{figure*}[h!]
 	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/twitter-all-models/response_time.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/response_time.pdf}
 		\subcaption{Response time.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/twitter-all-models/normalized.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/normalized.pdf}
 		\subcaption{Processing rate.}
 	\end{subfigure}
 	
 	\vspace{0.5cm} % Space between the rows
 	
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/twitter-all-models/goodput.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/twitter-all-models/gpu_utilization.png}
-		\subcaption{\acrshort{gpu} utilization.}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/gpu_utilization.png}
+		\subcaption{\gls{gpu} utilization.}
 	\end{subfigure}
-	\caption{Edge-based evaluation on the Twitter dataset shows {\roomie} delivering 8.3× lower latency and superior throughput on Jetson Xavier \acrshort{gpu}s, validating its proactive colocation strategy under constrained resources.}
+	\caption{Edge-based evaluation on the Twitter dataset shows {\roomie} delivering 8.3× lower latency and superior throughput on Jetson Xavier \glspl{gpu}, validating its proactive colocation strategy under constrained resources.}
 	\label{fig:JetsonNano/twitter-all-models}
 	\vspace{-3mm}
-\end{figure}
+\end{figure*}
 
 The~\Cref{fig:JetsonNano/twitter-all-models} presents the results obtained with the Twitter dataset on Jetson Xavier devices. While Usher and INFaaS exhibited similar throughput levels, INFaaS achieved lower latency, whereas Usher maintained a higher processing rate. {\roomie}, nevertheless, significantly outperformed both, achieving an 8.3× reduction in latency compared to INFaaS under high workload conditions. It also delivered superior throughput and processing rates due to its proactive colocation strategy.
 
-Edge environments impose more severe constraints on model deployment due to limited computing resources and reduced scalability. In this context, {\roomie}'s colocation strategy offers a significant advantage, effectively balancing resource allocation and minimizing performance degradation. As workload intensity increases, \acrshort{gpu} utilization increases accordingly, reaching levels significantly higher than those seen in cloud-based configurations. This underscores the critical importance of intelligent colocation policies in edge scenarios, where resource efficiency has a direct impact on system responsiveness and throughput.
+Edge environments impose more severe constraints on model deployment due to limited computing resources and reduced scalability. In this context, {\roomie}'s colocation strategy offers a significant advantage, effectively balancing resource allocation and minimizing performance degradation. As workload intensity increases, \gls{gpu} utilization increases accordingly, reaching levels significantly higher than those seen in cloud-based configurations. This underscores the critical importance of intelligent colocation policies in edge scenarios, where resource efficiency has a direct impact on system responsiveness and throughput.
 
 \paragraph{Evaluation on synthetic dataset.}
 
-\begin{figure}[h!]
+\begin{figure*}[h!]
 	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/response_time.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/response_time.pdf}
 		\subcaption{Response time.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/normalized.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/normalized.pdf}
 		\subcaption{Processing rate.}
 	\end{subfigure}
 	
 	\vspace{0.5cm} % Space between the rows
 	
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/goodput.pdf}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.45\linewidth}
 		\centering
-		\includegraphics[width=\textwidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/gpu_utilization.png}
-		\subcaption{\acrshort{gpu} utilization.}
+		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/gpu_utilization.png}
+		\subcaption{\gls{gpu} utilization.}
 	\end{subfigure}
 	\caption{Under synthetic edge evaluation, {\roomie} sustains 9× faster response time and 1.5× higher throughput, demonstrating robust performance in resource-limited environments.}
 	\label{fig:JetsonNano/synthetic-all-models}
 	\vspace{-3mm}
-\end{figure}
+\end{figure*}
 
-The synthetic dataset evaluation on Jetson Xavier \acrshort{gpu}s yielded consistent results with those observed on the Twitter dataset. The results are shown in~\Cref{fig:JetsonNano/synthetic-all-models}. {\roomie} again demonstrated superior performance, achieving a 9× reduction in response time and a 1.3× increase in processing rate. Throughput was also 1.5× higher than competing approaches.
+The synthetic dataset evaluation on Jetson Xavier \glspl{gpu} yielded consistent results with those observed on the Twitter dataset. The results are shown in~\Cref{fig:JetsonNano/synthetic-all-models}. {\roomie} again demonstrated superior performance, achieving a 9× reduction in response time and a 1.3× increase in processing rate. Throughput was also 1.5× higher than competing approaches.
 
-These findings confirm that {\roomie} is the most effective \acrshort{dnn} deployment strategy in edge computing contexts where colocation is necessary and resources are limited. Its ability to maintain low latency and high throughput under constrained conditions makes it a compelling solution for real-time inference workloads.
+These findings confirm that {\roomie} is the most effective \gls{dnn} deployment strategy in edge computing contexts where colocation is necessary and resources are limited. Its ability to maintain low latency and high throughput under constrained conditions makes it a compelling solution for real-time inference workloads.
 
 
 \subsection{Evaluating {\roomie} Deployment Accuracy Against Optimal Strategies}
@@ -263,6 +263,6 @@ These findings confirm that {\roomie} is the most effective \acrshort{dnn} deplo
 	\vspace{-3mm}
 \end{figure}
 
-This section investigates the effectiveness of {\roomie} for the deployment of \acrshort{dnn}s across a varying number of GPUs, specifically between six and eight. For each configuration, the number of \acrshort{dnn}s to be deployed was randomly selected from a range of 2--3$\times$ the number of GPUs, guided by predefined options outlined in~\Cref{tab:dnn-models}. More than 1500 randomized evaluations were conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations were thoroughly assessed to determine the configuration that resulted in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher were then applied to the same scenarios, and their absolute errors relative to the optimal were recorded. The results are summarized in~\Cref{fig:performance_gap}. The~\Cref{fig:performance_gap:gap} illustrates the average performance gap across configurations, while the~\Cref{fig:performance_gap:proportion} quantifies the proportion of trials in which {\roomie} outperforms Usher.
+This section investigates the effectiveness of {\roomie} for the deployment of \glspl{dnn} across a varying number of GPUs, specifically between six and eight. For each configuration, the number of \glspl{dnn} to be deployed was randomly selected from a range of 2--3$\times$ the number of GPUs, guided by predefined options outlined in~\Cref{tab:dnn_models}. More than 1500 randomized evaluations were conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations were thoroughly assessed to determine the configuration that resulted in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher were then applied to the same scenarios, and their absolute errors relative to the optimal were recorded. The results are summarized in~\Cref{fig:performance_gap}. The~\Cref{fig:performance_gap:gap} illustrates the average performance gap across configurations, while the~\Cref{fig:performance_gap:proportion} quantifies the proportion of trials in which {\roomie} outperforms Usher.
 
 The comparative analysis highlights {\roomie}'s consistent superiority in deployment accuracy across all concurrency levels. Its success in nearly 90\% of randomized trials reflects a design that is not only structurally aware but also resilient to the practical limitations of kernel-level modeling. Unlike Usher, which applies static heuristics that overlook the dynamic nature of interference, {\roomie} adapts to the complexities introduced by concurrent execution. Crucially, the residual error observed in {\roomie}'s deployments stems not from heuristic misalignment, but from the inherent challenges of profiling-based estimation. Tools such as Nsight-Compute, while indispensable for capturing fine-grained kernel behavior, introduce latency and measurement distortion that complicate performance inference. {\roomie}'s strategy, based on the analysis of isolated traces and representative overlap simulation, effectively manages these distortions without resorting to exhaustive enumeration. Moreover, as concurrency increases, {\roomie} demonstrates robustness in the face of combinatorial explosion, where kernel alignment across models creates an exponentially growing space of interference scenarios. That {\roomie} maintains bounded error under these conditions affirms its capacity to balance fidelity with scalability, offering a principled alternative to heuristics that fail to account for architectural nuance.

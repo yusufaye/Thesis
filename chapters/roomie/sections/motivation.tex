@@ -3,23 +3,23 @@
 
 In this section, we will discuss the importance of taking model interference into account when inference serving, as demonstrated by the suboptimal performance of existing approaches.
 
-\begin{figure}
+\begin{figure*}
 	\centering
-	\begin{subfigure}[t]{0.45\textwidth}
+	\begin{subfigure}[t]{0.45\linewidth}
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/Throughput_models_in_isolation.pdf}
 		\caption{Throughput when the model operates in isolation, without any interference.}
 		\label{fig:isolation}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[t]{0.45\textwidth}
+	\begin{subfigure}[t]{0.45\linewidth}
 		\centering
 		\includegraphics[width=\textwidth]{chapters/roomie/images/Throughput_models_in_combinaison.pdf}
 		\caption{An alternative to co-locating three models on two \gls{gpu}, offering a better compromise than Usher~\cite{shubha2024usher}.}
 		\label{fig:colocation}
 	\end{subfigure}
 	\label{fig:three graphs}
-\end{figure}
+\end{figure*}
 
 \subsection{Limitations of Existing Inference Serving Strategies}
 
