@@ -32,9 +32,9 @@ We use these functions to create a heterogeneous application with two different 
 
 \paragraph{System configuration and model tuning.} We configure the {\videojam} load-balancing system using the parameters summarized in~\Cref{tab:configuration}. Regarding the predictive model, we opt for an architecture that minimizes inference time while guaranteeing acceptable performance. We choose a neural network with a single dense layer of 512 units trained over 100 epochs. The model takes in input a window of size $h$ and can predict a window of size $k$ (see~\Cref{tab:configuration} for the values of these parameters). We also tried out different architectures, such as a \gls{cnn}, and \gls{lstm}. However, such models result to be difficult to use since (i) \gls{cnn} requires a significant amount of time for the inference, although it has high levels of accuracy; (ii) in our case, \gls{lstm} presents poor performance in terms of both accuracy and inference time given its specific use on time series (different from our case).
 
-\begin{table}
+\begin{table*}
 	\centering
-	\begin{tabular}{p{1.5cm}p{6.5cm}}
+	\begin{tabular}{p{.1\linewidth}p{.8\linewidth}}
     \toprule
 	\textbf{Parameter} & \textbf{Value and description}                                                          \\
 	\midrule
@@ -45,7 +45,7 @@ We use these functions to create a heterogeneous application with two different 
 	\bottomrule
 	\end{tabular}
 	\caption{{\videojam} configuration~\label{tab:configuration}}
-\end{table}
+\end{table*}
 
 \subsection{Evaluation Setup}\label{sec:videojam_setup}
 

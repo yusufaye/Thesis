@@ -1,25 +1,14 @@
 \section{Evaluation}
 
-This section presents the core implementation of {\roomie} and outlines the methodology used to evaluate its performance. We examine its behavior across both cloud-based GPU clusters and edge deployments using Jetson Xavier devices. Additionally, we assess {\roomie}'s deployment accuracy relative to optimal strategies under varying conditions.
+This section presents the core implementation of {\roomie} and outlines the methodology used to evaluate its performance. We examine its behavior across both cloud-based \gls{gpu} clusters and edge deployments using Jetson Xavier devices. Additionally, we assess {\roomie}'s deployment accuracy relative to optimal strategies under varying conditions.
 
 \subsection{Implementation}
 
-% {\roomie} system is implemented using a combination of C++ and Python, comprising approximately 15K lines of code. Our implementation is mainly compose by three components: a client for generating queries, a controller that hold the logic of the scheduling algorithm, and a worker implemented using python for DNN inference. The client and the controller are implemented in c++. We use websocket for communication between components.
-
-% PyTorch serves as the primary framework for deep neural network (DNN) inference, with pretrained classification and detection models sourced from the TorchVision library to accelerate development and ensure robust performance.
-
-% To accommodate heterogeneous hardware platforms, we deploy inference workers within containerized environments tailored to the target devices. For systems equipped with NVIDIA A100 GPUs, we utilize the \textit{pytorch:2.5.0-cuda12.1-cudnn9-runtime} container, which provides optimized support for CUDA 12.1 and cuDNN 9. On NVIDIA Jetson devices, we employ the \textit{dustynv/l4t-pytorch:r35.4.1} ARM64 container image, which is specifically designed for the Jetson architecture and integrates well with its hardware acceleration capabilities.
-
-% Performance profiling is conducted using platform-specific tools to assess and optimize DNN execution. On Jetson devices, we leverage NVIDIA Nsight Compute to analyze GPU kernel behavior, memory usage, and execution efficiency. For the A100 platform, we employ the PyTorch Profiler to obtain detailed insights into kernel-level operations and resource utiliza	tion. However, the PyTorch Profiler is not supported within the Jetson L4T container environment, limiting our ability to extract fine-grained profiling data on that platform. Furthermore, we encountered compatibility challenges when attempting to use Nsight Compute (ncu) on the A100 hardware available to us, which constrained our profiling capabilities on that system.
-
-% The complete {\roomie} codebase is open-source and accompanied by comprehensive documentation to facilitate reproducibility, transparency, and community-driven development.
-
-
 The {\roomie} system is implemented in C++ and Python, comprising approximately 15,000 lines of code. Its architecture consists of three core components: a client that generates queries, a controller that manages scheduling logic, and a worker responsible for \gls{dnn} inference. The client and controller are implemented in C++, while the worker is written in Python to leverage the PyTorch framework. Communication between components is handled via WebSocket, enabling efficient and asynchronous message exchange.
 
-\Gls{dnn} inference is powered by PyTorch, with pretrained classification and detection models sourced from the TorchVision library to accelerate development and ensure reliable performance. Inference workers are deployed in containerized environments adapted to the underlying hardware. For cloud-based systems equipped with NVIDIA A100 \glspl{gpu}, we use the \textit{pytorch:2.5.0-cuda12.1-cudnn9-runtime} container. For edge deployments on Jetson Xavier devices, we rely on the ARM64 image \textit{dustynv/l4t-pytorch:r35.4.1}, which is optimized for Jetson’s architecture and \gls{cuda} support.
+\gls{dnn} inference is powered by PyTorch, with pretrained classification and detection models sourced from the TorchVision library to accelerate development and ensure reliable performance. Inference workers are deployed in containerized environments adapted to the underlying hardware. For cloud-based systems equipped with NVIDIA A100 \glspl{gpu}, we use the \textit{pytorch:2.5.0-cuda12.1-cudnn9-runtime} container. For edge deployments on Jetson Xavier devices, we rely on the ARM64 image \textit{dustynv/l4t-pytorch:r35.4.1}, which is optimized for Jetson's architecture and \gls{cuda} support.
 
-To inform deployment decisions, we conduct offline profiling of \gls{dnn} kernel behavior. On Jetson devices, we use NVIDIA Nsight Compute (\textit{ncu}) to analyze kernel configurations and execution characteristics. For A100-based systems, we employ the PyTorch Profiler to collect detailed performance traces. However, the PyTorch Profiler is not supported within Jetson L4T containers, and Nsight Compute presented compatibility issues on the A100 hardware available to us, limiting profiling capabilities on that platform.
+To inform deployment decisions, we conduct offline profiling of \gls{dnn} kernel behavior. On Jetson devices, we use NVIDIA Nsight-Compute (`ncu`) to analyze kernel configurations and execution characteristics. For A100-based systems, we employ the PyTorch Profiler to collect detailed performance traces. However, the PyTorch Profiler is not supported within Jetson L4T containers, and Nsight-Compute presented compatibility issues on the A100 hardware available to us, limiting profiling capabilities on that platform.
 
 During deployment, \gls{gpu} utilization is monitored using nvitop~\cite{nvitop} on A100 systems and jetson\_stats~\cite{jetson_stats} on Jetson devices. These tools provide runtime visibility and help ensure stable operation under varying workloads.
 
@@ -32,16 +21,19 @@ The complete {\roomie} codebase is open-source and accompanied by comprehensive 
 
 \paragraph{Baselines.} We evaluate {\roomie} against two different state-of-the-art baselines: INFaaS and Usher. INFaaS performs accuracy scaling by scaling variants within the same worker to meet demand. Usher, on the other hand, groups compute-heavy models with memory-heavy models within a group. We have used different models from two family groups, namely classification and detection, to evaluate our solution and baselines. We consider that each incoming query is intended for a single inference model.
 
-\paragraph{Deployment Infrastructure.} We conducted our experiments using two distinct deployment types: a cluster of Jetson Nanos and a cluster of larger GPUs. The first consisted of $3\times$ machines equipped with $4\times$ \textit{Nvidia A100-SXM4-40GB (40 GiB)}. The second consisted of $12\times$ \textit{Nvidia Jetson AGX Xavier} GPUs. Each GPU is assigned to a docker to form a server, making a total of 12 servers for each deployment. We also used $2\times$ \textit{HPE Proliant DL360 Gen10+} the client requesting the model and a controller responsible for serving requests to workers. The full specifications are presented in \Cref{tab:serve_config}.
+\paragraph{Deployment Infrastructure.}
+We conduct our experiments using two distinct deployment types: a cluster of larger \glspl{gpu} and a cluster of Jetson Nanos. The first consists of 3$\times$ machines equipped with 4$\times$ \textit{Nvidia A100-SXM4-40GB} each, giving a total of 12 \glspl{gpu}. The second consists of 12$\times$ \textit{Nvidia Jetson AGX Xavier} \glspl{gpu}, also giving a total of 12 \glspl{gpu}. Each \gls{gpu} is assigned to a docker to form a server, resulting in 12 servers for each deployment.\\
+In addition, we use 2$\times$ \textit{HPE Proliant DL360 Gen10+}. One machine acts as the client, which issues inference queries to the system. The other acts as the controller, which receives these queries and is responsible for scheduling and forwarding them to the worker servers (each backed by a \gls{gpu}). This separation mirrors a typical inference serving setup, where the client generates requests and the controller orchestrates their distribution to maximize goodput and efficiency.\\
+The full specifications are presented in \Cref{tab:serve_config}.
 
-\begin{table}
+\begin{table*}
 	\centering
 	\begin{tabular}{p{.2\linewidth}p{.35\linewidth}p{.35\linewidth}}
 		\toprule
-		\textbf{Model}            & \textbf{CPU}                                & \textbf{GPU}                                                 \\
+		\textbf{Model}            & \textbf{CPU}                                & \textbf{\gls{gpu}}                                                 \\
 		\toprule
 
-		Nvidia Jetson AGX Xavier  & 1 CPU/node, 8 cores/CPU                     & Nvidia AGX Xavier, CC~\footnote{CC: Compute capability}: 7.2 \\
+		Nvidia Jetson AGX Xavier  & 1 CPU/node, 8 cores/CPU                     & Nvidia AGX Xavier, Compute capability: 7.2 \\
 
 		\midrule
 
@@ -49,7 +41,7 @@ The complete {\roomie} codebase is open-source and accompanied by comprehensive 
 
 		\midrule
 
-		Apollo 6500 Gen10+        & x86\_64, 1 CPU/node, 32 cores/CPU           & $4\times$ Nvidia A100-SXM4-40GB (40 GiB), CC: 8.0            \\
+		Apollo 6500 Gen10+        & x86\_64, 1 CPU/node, 32 cores/CPU           & $4\times$ Nvidia A100-SXM4-40GB (40 GiB), Compute capability: 8.0            \\
 
 		\midrule
 
@@ -59,214 +51,206 @@ The complete {\roomie} codebase is open-source and accompanied by comprehensive 
 	\end{tabular}
 	\caption{Server conﬁguration used for experiments.}
 	\label{tab:serve_config}
-\end{table}
+\end{table*}
 
 \paragraph{Datasets.} We evaluated our system and baseline methods using both synthetic and real-world workloads. For the real workload, we adopt the Twitter trace 2020 dataset~\cite{twitterStreamTrace2020}, as it is particularly suitable for modeling inference services, as tweets are commonly subjected to \gls{dnn} processing before publication~\cite{francisco2021infaas,ahmad2024proteus}. Since the trace is aggregated at a coarse temporal granularity of one second, we apply a Poisson process to model intra-second arrival times and use a Zipf distribution to distribute queries among models, in line with established methodology~\cite{francisco2021infaas,ahmad2024proteus}.
-For synthetic workloads, we generated average request rates per second using a Gaussian process and applied the same Zipf-based model allocation. To ensure our evaluation captures a broad spectrum of inference behavior, we selected a diverse and representative set of DNN models. These include both high-performance classification architectures and widely adopted object detection frameworks, enabling us to rigorously assess system behavior under varied computational and latency profiles. The full list of models is summarized in~\Cref{tab:dnn-models}, reflecting the breadth and relevance of our evaluation design.
+For synthetic workloads, we generated average request rates per second using a Gaussian process and applied the same Zipf-based model allocation. To ensure our evaluation captures a broad spectrum of inference behavior, we selected a diverse and representative set of \gls{dnn} models. These include both high-performance classification architectures and widely adopted object detection frameworks, enabling us to rigorously assess system behavior under varied computational and latency profiles. The full list of models is summarized in~\Cref{tab:dnn-models}, reflecting the breadth and relevance of our evaluation design.
 
 \begin{table}[h]
-	\centering \caption{Categorization of Deep Neural Network Models Used in Evaluation} \label{tab:dnn-models}
-	\begin{tabular}{p{.35\linewidth}p{.55\linewidth}}
-	% \begin{tabular}{p{3cm}p{5cm}}
-		\hline
-		\textbf{Category}       & \textbf{Models}
-		\\ \hline
-		Classification Models   &
-		\texttt{vgg19},
-		\texttt{alexnet},
-		\texttt{maxvit\_t},
-		\texttt{resnet152},
-		\texttt{googlenet},
-		\texttt{densenet201},
-		\texttt{squeezenet1\_1},
-		\texttt{mobilenet\_v3\_large},
-		\texttt{shufflenet\_v2\_x2\_0},
-		\texttt{inception\_v3},
-		\texttt{wide\_resnet101\_2},
-		\texttt{resnext101\_32x8d},
-		\texttt{efficientnet\_v2\_l},
-		\texttt{convnext\_large}
-		\\ \hline
-		Object Detection Models &
-		\texttt{ssd300\_vgg16},
-		\texttt{fcos\_resnet50\_fpn},
-		\texttt{retinanet\_resnet50\_fpn\_v2},
-		\texttt{fasterrcnn\_resnet50\_fpn\_v2},
-		\texttt{ssdlite320\_mobilenet\_v3\_large}
-		\\ \hline
-	\end{tabular}
+  \centering 
+  \caption{Categorization of Deep Neural Network Models Used in Evaluation. 
+  Models marked with $^\dagger$ were used only in the cloud cluster evaluation; 
+  all others were included in both cluster and Jetson Xavier evaluation.} 
+  \label{tab:dnn-models}
+  \begin{tabular}{p{.3\linewidth}p{.6\linewidth}}
+    \hline
+    \textbf{Category}       & \textbf{Models} \\
+    \hline
+    Classification Models   &
+    \texttt{alexnet}, \texttt{maxvit\_t}, \texttt{googlenet}, 
+    \texttt{densenet201}, \texttt{mobilenet\_v3\_large}, 
+    \texttt{squeezenet1\_1}, \texttt{shufflenet\_v2\_x2\_0}, 
+    \texttt{inception\_v3}, 
+    % cluster-only moved to end and marked
+    \texttt{vgg19}, 
+    \texttt{resnet152}$^\dagger$, \texttt{wide\_resnet101\_2}$^\dagger$, 
+    \texttt{resnext101\_32x8d}$^\dagger$, \texttt{efficientnet\_v2\_l}$^\dagger$, 
+    \texttt{convnext\_large}$^\dagger$ \\
+    \hline
+    Object Detection Models &
+    \texttt{retinanet\_resnet50\_fpn\_v2}, \texttt{fcos\_resnet50\_fpn}, 
+    \texttt{fasterrcnn\_resnet50\_fpn\_v2}, 
+    % cluster-only moved to end and marked
+    \texttt{ssd300\_vgg16}$^\dagger$, \texttt{ssdlite320\_mobilenet\_v3\_large}$^\dagger$ \\
+    \hline
+  \end{tabular}
 \end{table}
 
-\paragraph{Evaluation Metrics.} To evaluate the effectiveness of each DNN deployment strategy, the assessment focused on four key performance indicators. Response time measured how quickly the models delivered results, which is a critical indicator of real-time performance. The processing rate indicated the percentage of requests successfully processed, highlighting the reliability of the system for different workloads. Throughput measured the number of requests processed in a given time frame, providing insight into overall capacity and scalability. Finally, GPU utilization monitored the degree of hardware resource usage during model execution.
 
 
-\subsection{Performance Evaluation of Cloud-Based GPU Cluster Solutions}
 
-To assess the effectiveness of our proposed deployment strategy, we conducted a comprehensive evaluation using a cloud-based \gls{gpu} cluster comprising 12$\times$ GPUs and all \gls{dnn} models detailed in~\Cref{tab:dnn-models}. The experiments were performed using two distinct datasets: real-world Twitter data and synthetically generated data. These synthetic workloads were constructed to mimic real-world traffic patterns while allowing precise manipulation of query rates. This enabled a more granular analysis of system behavior under stress. These datasets were used to simulate varying workload intensities, beginning with low traffic levels that all models could handle and gradually increasing until system saturation was observed.
+\paragraph{Evaluation Metrics.} 
+To evaluate the effectiveness of each \gls{dnn} deployment strategy, the assessment focused on two categories of metrics: performance metrics and resource metrics.
+Performance metrics included \gls{slo} violations, which measure the frequency of service level objective violations directly reflecting inference quality and responsiveness, and goodput, which quantifies the rate of completed requests.
+Resource metrics included \gls{gpu} core utilization (or compute utilization), defined as the percentage of time the \gls{gpu}'s compute engines are actively executing kernels, and memory utilization, defined as the fraction of \gls{gpu} memory capacity in use. These capture the efficiency of hardware resource usage during model execution.
+Together, these metrics provide a balanced view of service efficiency and quality under varying workload and batch processing conditions.
 
-\paragraph{Evaluation on Twitter dataset.}
 
-\begin{figure*}[h!]
+% 8. We talked many times about giving arrows to show what is better and point out at differences on the plot itself. Why did this disappear?
+
+
+\subsection{Performance Evaluation of Cloud-Based \gls{gpu} Cluster Solutions}
+
+\begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/response_time.pdf}
-		\subcaption{Response time.}
-	\end{subfigure}
-	% \hfill
-	\begin{subfigure}[b]{0.47\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/normalized.pdf}
-		\subcaption{Processing rate.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/nvidiaA100_twitter_running/slo_violation.pdf}
+		\subcaption{\gls{slo} violation.}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/goodput.pdf}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/nvidiaA100_twitter_running/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
-
-	\caption{\yf{Explain first what the experiment shows, then talk about the result. Apply to all figures}{\roomie} achieves up to 17$\times$ faster response times while delivering similar processing rates in a cloud-based evaluation using the Twitter dataset, outperforming INFaaS and Usher under high workload conditions.}
-	\label{fig:NvidiaA100/twitter-all-models}
+	\caption{Performance evaluation on the Twitter dataset shows how \gls{slo} violations evolve with increasing workload; {\roomie} sustains violations below 10\% under high load, outperforming INFaaS and Usher while preserving goodput.}
+	\label{fig:Nvidia/twitter}
 \end{figure*}
 
-\begin{figure*}[h!]
+\begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/response_time.pdf}
-		\subcaption{Response time.}
-		\label{fig:NvidiaA100/synthetic-all-models/response-time}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.47\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/normalized.pdf}
-		\subcaption{Processing rate.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/nvidiaA100_synthetic_running/slo_violation.pdf}
+		\subcaption{\gls{slo} violation.}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/goodput.pdf}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/nvidiaA100_synthetic_running/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
-	\caption{In cloud-based evaluation using synthetic workloads, {\roomie} yields 9.2× faster response time and higher processing rate, confirming its deployment efficiency in controlled stress scenarios.}
-	\label{fig:NvidiaA100/synthetic-all-models}
+	\caption{Evaluation with synthetic workloads illustrates system behavior under controlled stress; {\roomie} maintains violations near 6\% at saturation, more than 4$\times$ lower than INFaaS and 2$\times$ lower than Usher, while sustaining goodput close to the offered load.}
+	\label{fig:Nvidia/synthetic}
 \end{figure*}
 
+To assess the effectiveness of our proposed deployment strategy, we conduct a comprehensive evaluation using a cloud-based \gls{gpu} cluster comprising 12$\times$ \glspl{gpu} and all \gls{dnn} models detailed in~\Cref{tab:dnn-models}. The experiments are performed using two distinct datasets: real-world Twitter data and synthetically generated data.
+
+\Cref{fig:Nvidia/twitter} shows the performance results obtained from the Twitter dataset. At low workload levels, all approaches behave similarly, with negligible differences in violation rates and goodput. As the workload increases, however, disparities emerge. {\roomie} consistently sustains lower violation rates, achieving less than 10\% even under high load, while INFaaS exceeds 30\% and Usher reaches around 20\%. Goodput remains close to the offered load across all approaches, but {\roomie} maintains slightly higher values, confirming its ability to preserve goodput while reducing violations.  
+
+These differences stem directly from how colocation is performed. INFaaS replicates models across workers without interference awareness, which leads to overscaling of heavy detector networks such as SSD, FCOS, and FasterRCNN. When multiple replicas of these models are placed together without awareness, interference between their kernels produces violation rates above 70\% for detectors and more than 60\% for Densenet. Usher attempts to balance compute-bound and memory-bound workloads, but its multiplexing heuristics overlook temporal overlap. As a result, models like MaxViT experience violations around 44\%, and detectors remain unstable with violations between 45--78\%. {\roomie} avoids these drawbacks by distributing heavy models alongside lighter ones whose kernel timelines complement each other. For example, pairing Googlenet with SSD allows Googlenet to maintain violations below 1\%, while SSD itself remains stressed but at a reduced level. Densenet, which collapses under INFaaS, records only 4.5\% violations under {\roomie}. These placement decisions explain why {\roomie} sustains responsiveness while the baselines degrade.
+
+\Cref{fig:Nvidia/synthetic} illustrates the evaluation conducted with synthetic workloads. The performance trends closely mirror those observed with the Twitter dataset. At high workload levels, {\roomie} maintains violation rates near 6\%, compared to more than 25\% for INFaaS and 16\% for Usher. This corresponds to a reduction of more than 4$\times$ relative to INFaaS and 2$\times$ relative to Usher. Under high workload conditions, the offered goodput is already near the system's maximum capacity for all strategies, but {\roomie} sustains higher goodput than both baselines. Here again, the explanation lies in colocation: INFaaS overscales detectors, Usher misplaces models with overlapping kernels, while {\roomie} minimizes interference by pairing workloads that do not collide in time.  
+
+Overall, across both datasets, {\roomie} demonstrates robust performance under varying workload conditions, consistently achieving lower violation rates and higher goodput than competing approaches. This robustness stems from clear factors: replication without interference awareness amplifies contention, multiplexing heuristics that pair compute-heavy with memory-heavy models fail to capture temporal dynamics, and interference-aware colocation prevents collapse by placing \gls{dnn} models intelligently.
 
 
-\Cref{fig:NvidiaA100/twitter-all-models} shows the performance results obtained from the Twitter database. Under low workload conditions, all approaches showed comparable response times. However, as the workload increased, significant performance disparities emerged. Notably, {\roomie} achieved response times up to 17× faster than rival solutions and maintained a processing rate above 97\%. In contrast, Usher's strategy of co-locating large models with lightweight models failed to deliver satisfactory performance under high load, resulting in increased latency and reduced goodput. INFaaS, which scales DNNs on workers already hosting a copy, showed moderate goodput performance. However, this approach is agnostic to model interference, leading to latency increases of up to 17× and a decline in processing rate.
+\subsection{Performance Evaluation on Edge Devices Using Jetson Xavier \glspl{gpu}}
 
-Interestingly, despite low GPU utilization across all approaches, we observe a significant increase in response time as workload intensifies. This counterintuitive behavior can be attributed to the saturation of large models, which become unable to keep pace with incoming queries. As these models reach their computational limits, they begin to queue requests, leading to latency explosions—even though the GPU itself remains underutilized. Additionally, interference between co-located models can further degrade responsiveness, compounding delays without a corresponding rise in GPU activity. One potential mitigation strategy is to increase batch sizes, which can improve utilization by amortizing overhead across multiple queries. However, this approach introduces a trade-off: larger batches may inflate response times, making it unsuitable for latency-sensitive applications. These findings underscore the need for deployment strategies that go beyond raw utilization metrics and account for model saturation dynamics and cross-model interference.
-
-
-\paragraph{Evaluation on synthetic dataset.}
-
-\Cref{fig:NvidiaA100/synthetic-all-models/response-time} illustrates the results of the evaluation conducted with a synthetic dataset designed to emulate diverse and controlled workload scenarios.\\
-The performance trends observed with the synthetic dataset closely mirrored those seen with the Twitter data. {\roomie} consistently outperformed other deployment strategies, achieving a 9.2× reduction in response time and superior throughput and processing rates. These gains are attributed to {\roomie}'s intelligent model deployment and colocation strategy, which minimizes interference and maximizes resource efficiency.
-
-Overall, across both datasets, {\roomie} demonstrated robust performance under varying workload conditions. It consistently achieved lower response times—up to 17× faster, and higher processing rate than competing approaches, validating its effectiveness in cloud-based GPU environments.
-
-\subsection{Performance Evaluation on Edge Devices Using Jetson Xavier GPUs}
-
-To further validate our approach, we conducted a second set of experiments using a cluster of 12 Jetson Xavier GPUs, representative of resource-constrained edge computing environments. As in the cloud-based evaluation, we deployed 12 models (from~\Cref{tab:dnn-models}) and tested performance using Twitter data and synthetic data, gradually increasing the workload intensity.
-
-\paragraph{Evaluation on twitter dataset.}
-
-\begin{figure*}[h!]
+\begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/response_time.pdf}
-		\subcaption{Response time.}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.47\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/normalized.pdf}
-		\subcaption{Processing rate.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/jetson_twitter_running/slo_violation.pdf}
+		\subcaption{\gls{slo} violation.}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/goodput.pdf}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/jetson_twitter_running/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
-	\caption{Edge-based evaluation on the Twitter dataset shows {\roomie} delivering 8.3× lower latency and superior throughput on Jetson Xavier GPUs, validating its proactive colocation strategy under constrained resources.}
-	\label{fig:JetsonNano/twitter-all-models}
+	\caption{Edge-based evaluation using the Twitter dataset demonstrates the impact of resource constraints; {\roomie} keeps violations near 9\% under high load, compared to over 42\% for INFaaS and 21\% for Usher, while sustaining higher goodput.}
+	\label{fig:JetsonNano/twitter}
 \end{figure*}
 
-
-\begin{figure*}[h!]
+\begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/response_time.pdf}
-		\subcaption{Response time.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/jetson_synthetic_running/slo_violation.pdf}
+		\subcaption{\gls{slo} violation.}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/normalized.pdf}
-		\subcaption{Processing rate.}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.47\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/goodput.pdf}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/jetson_synthetic_running/goodput.pdf}
 		\subcaption{Goodput.}
 	\end{subfigure}
-	\caption{Under synthetic edge evaluation, {\roomie} sustains 9× faster response time and 1.5× higher throughput, demonstrating robust performance in resource-limited environments.}
-	\label{fig:JetsonNano/synthetic-all-models}
+	\caption{Evaluation with synthetic workloads on Jetson Xavier devices highlights robustness under saturation; {\roomie} maintains violations close to 10\%, reducing them by factors of four or more relative to INFaaS and outperforming Usher in both violation rate and goodput.}
+	\label{fig:JetsonNano/synthetic}
 \end{figure*}
 
-The~\Cref{fig:JetsonNano/twitter-all-models} presents the results obtained with the Twitter dataset on Jetson Xavier devices. While Usher and INFaaS exhibited similar throughput levels, INFaaS achieved lower latency, whereas Usher maintained a higher processing rate. {\roomie}, nevertheless, significantly outperformed both, achieving an 8.3× reduction in latency compared to INFaaS under high workload conditions. It also delivered superior throughput and processing rates due to its proactive colocation strategy.
+To further validate our solution, we conduct a second set of experiments using a cluster of 12 Jetson Xavier \glspl{gpu}, representative of resource-constrained edge computing environments. As in the cloud-based evaluation, we deploy 12 models (from~\Cref{tab:dnn-models}), which correspond to the \glspl{dnn} not marked with $^\dagger$ in the table, and tested performance using real-world Twitter data and synthetically generated data while gradually increasing workload intensity.
 
-Edge environments impose more severe constraints on model deployment due to limited computing resources and reduced scalability. In this context, {\roomie}'s colocation strategy offers a significant advantage, effectively balancing resource allocation and minimizing performance degradation. As workload intensity increases, GPU utilization increases accordingly, reaching levels significantly higher than those seen in cloud-based configurations. This underscores the critical importance of intelligent colocation policies in edge scenarios, where resource efficiency has a direct impact on system responsiveness and throughput.
+The results of the Twitter workload on Jetson Xavier devices appear in~\Cref{fig:JetsonNano/twitter}. At low traffic levels, the three approaches deliver comparable performance, with only minor differences in violation rates and goodput. As the workload grows, however, {\roomie} begins to separate itself from the baselines. At moderate intensity, it sustains lower violation rates while maintaining goodput close to the offered load. Under high workload conditions, the contrast becomes pronounced: {\roomie} holds violations near 9\%, whereas INFaaS rises above 40\% and Usher remains above 20\%. Goodput measurements confirm this advantage, with {\roomie} consistently achieving higher goodput than both competitors.
 
-\paragraph{Evaluation on synthetic dataset.}
+These results complement the conclusions drawn from the evaluation of cloud-based clusters. Replication without interference consideration causes INFaaS to collapse under saturation, while Usher's strategy of pairing compute-heavy with memory-heavy models offers partial improvements but fails to capture kernel overlap. On Jetson devices, the same mechanisms are visible but are magnified by tighter resource constraints. INFaaS again overscales detectors, with Retinanet exceeding 73\% violations, while even lightweight models such as Alexnet (23\%), Googlenet (34\%), and Mobilenet (35\%) degrade when colocated with heavy workloads. Usher continues to misplace heterogeneous models, producing moderate violations for classifiers such as Alexnet (21\%) and Densenet (12\%), while FCOS and MaxViT remain unstable at 29\% and 27\%. By contrast, {\roomie} places heavy models alongside lighter ones whose kernel timelines complement each other, reducing contention for most workloads: Densenet's violations fall to 5\%, Mobilenet to 4\%, Shufflenet to 6\%, and Alexnet to 6\%. Detectors such as FasterRCNN and FCOS remain stable under {\roomie}, both near 1--2\%, though Retinanet continues to be challenging at 62\%. These examples illustrate how interference-aware colocation prevents collapse and sustains responsiveness under stress, even though certain detector models remain difficult to stabilize.
+
+The synthetic dataset evaluation on Jetson Xavier \glspl{gpu} produces results consistent with those observed on the Twitter dataset, as shown in~\Cref{fig:JetsonNano/synthetic}. Under high load, {\roomie} maintains violation rates close to 10\%, compared to more than 40\% for INFaaS and 20\% for Usher. At these traffic levels, the incoming query rate drives the system near saturation across all strategies, yet {\roomie} converts a significantly larger share of requests into successful completions—achieving up to 1.5$\times$ higher goodput than competing baselines. Here again, the explanation lies in colocation: INFaaS overscales detectors, Usher misplaces models with overlapping kernels, while {\roomie} minimizes interference by pairing workloads that do not collide in time.
+
+Taken together, the evaluation on edge devices confirms and strengthens the earlier cluster-based conclusion. Replication without interference awareness leads to collapse under saturation, multiplexing compute-heavy with memory-heavy models provide partial improvements but fails to capture temporal dynamics, and interference-aware colocation is essential for sustaining responsiveness and goodput. The sharper contrasts observed on Jetson devices highlight that the benefits of {\roomie} are not limited to large clusters but extend to resource-constrained environments, demonstrating its generality and robustness across deployment contexts.
 
 
-The synthetic dataset evaluation on Jetson Xavier GPUs yielded consistent results with those observed on the Twitter dataset. The results are shown in~\Cref{fig:JetsonNano/synthetic-all-models}. {\roomie} again demonstrated superior performance, achieving a 9× reduction in response time and a 1.3× increase in processing rate. Throughput was also 1.5× higher than competing approaches.
 
-These findings confirm that {\roomie} is the most effective DNN deployment strategy in edge computing contexts where colocation is necessary and resources are limited. Its ability to maintain low latency and high throughput under constrained conditions makes it a compelling solution for real-time inference workloads.
+
+
+
+
+
 
 \subsection{Impact of batch size}
 
-\subsection{On the GPU Utilization and Model Saturation}
-\begin{figure*}[h!]
+We examine the effect of batch size on scheduling performance using the cloud-based \gls{gpu} cluster with 12$\times$ \glspl{gpu}. The experiment uses the Twitter dataset under high workload conditions (10K QPS) and varies batch size from 8 to 64. To capture the impact of batching under stress, we analyze performance metrics (\gls{slo} violations and goodput) alongside resource metrics (\gls{gpu} core and memory utilization), providing a comprehensive view of how batching influences efficiency and service quality.
+
+\begin{figure*}
 	\centering
-	\begin{subfigure}[b]{0.45\linewidth}
+	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/twitter-all-models/gpu_utilization.pdf}
-		\subcaption{A100 Twitter.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/evaluation_over_multiple_batch_sizes/slo_violation.pdf}
+		\subcaption{\gls{slo} violation.}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\linewidth}
+	\begin{subfigure}[b]{0.47\linewidth}
 		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/NvidiaA100/synthetic-all-models/gpu_utilization.pdf}
-		\subcaption{A100 Synthetic.}
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/evaluation_over_multiple_batch_sizes/goodput.pdf}
+		\subcaption{Goodput.}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/twitter-all-models/gpu_utilization.png}
-		\subcaption{Jetson Twitter.}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.45\linewidth}
-		\centering
-		\includegraphics[width=\linewidth]{chapters/roomie/images/JetsonNano/synthetic-all-models/gpu_utilization.png}
-		\subcaption{Jetson Synthetic.}
-	\end{subfigure}
-	\caption{\yf{Talk about utilization}}
-	\label{fig:gpu_utilization}
+	\caption{Impact of batch size on \gls{slo} violations and goodput under high workload (10K QPS); while goodput remains nearly unchanged, larger batches increase violations across all approaches, with {\roomie} consistently maintaining lower rates—especially at moderate batch sizes.}
+	\label{fig:BatchSize/Nvidia_perf_metrics}
 \end{figure*}
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.47\linewidth}
+		\centering
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/evaluation_over_multiple_batch_sizes/gpu_utilization.pdf}
+		\subcaption{\gls{gpu} core utilization.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.47\linewidth}
+		\centering
+		\includegraphics[width=\textwidth]{chapters/roomie/images/evaluation/evaluation_over_multiple_batch_sizes/memory_utilization.pdf}
+		\subcaption{Memory utilization.}
+	\end{subfigure}
+	\caption{Impact of batch size on \gls{gpu} core utilization and memory utilization under high workload (10K QPS); \gls{gpu} core utilization shows little variation due to \gls{cuda} kernel execution patterns, while memory usage increases with larger batches but exhibits only modest differences across approaches.}
+	\label{fig:BatchSize/Nvidia_resource_metrics}
+\end{figure*}
+
+The performance metrics in~\Cref{fig:BatchSize/Nvidia_perf_metrics} reveal decisive effects. At batch size 8, all approaches exhibit high violation rates, though {\roomie} consistently maintains lower violations than INFaaS and Usher. Increasing to batch size 16 produces a pronounced improvement for {\roomie}, with violations dropping to a small fraction of those at batch size 8 and remaining lower than both baselines, while goodput stays nearly unchanged. At larger batches, violations rise again across all solutions relative to the improvement observed at 16, indicating that aggressive batching increases responsiveness penalties even though goodput changes only marginally. In summary, when goodput is already high at smaller batches, further increasing batch size is not necessarily advantageous; it tends to worsen violations without yielding proportional goodput gains.
+
+The resource metrics in~\Cref{fig:BatchSize/Nvidia_resource_metrics} show that goodput-oriented batching does not materially differentiate the approaches in this setup. \gls{gpu} core utilization remains stable across batch sizes for all strategies, reflecting the behavior of \gls{cuda} kernels, which maximize occupancy regardless of workload configuration. Memory utilization increases with larger batches, but the differences between approaches are modest and do not translate into meaningful changes in service quality.
+
+Overall, batch size primarily affects inference quality rather than goodput or resource utilization. Resource usage patterns are governed by kernel execution, while real-world performance depends on the scheduling strategy's ability to mitigate interference and preserve responsiveness. {\roomie}'s proactive colocation demonstrates its strongest advantage at moderate batch sizes, underscoring that interference-aware design—not raw batching for utilization—is the critical factor under high load.
+
+
 
 
 \subsection{Evaluating {\roomie} Deployment Accuracy Against Optimal Strategies}
 
-\begin{figure}[h!]
+\begin{figure}
 	\centering
 	\includegraphics[width=\linewidth]{chapters/roomie/images/absolute_error.pdf}
-	\caption{{\roomie} maintains deployment error within 7–8\% of the optimal and outperforms Usher in nearly 90\% of evaluated scenarios, demonstrating robust accuracy and generalization under high concurrency.}
+	\caption{{\roomie} maintains deployment error within 7--8\% of the optimal and outperforms Usher in nearly 90\% of evaluated scenarios, demonstrating robust accuracy and generalization under high concurrency.}
 	\label{fig:performance_gap}
 	\vspace{-3mm}
 \end{figure}
 
-This section investigates the effectiveness of {\roomie} for the deployment of DNNs across a varying number of GPUs, specifically between six and eight. For each configuration, the number of DNNs to be deployed was randomly selected from a range of 2--3$\times$ the number of GPUs, guided by predefined options outlined in~\Cref{tab:dnn-models}. More than 1500 randomized evaluations were conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations were thoroughly assessed to determine the configuration that resulted in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher were then applied to the same scenarios, and their absolute errors relative to the optimal were recorded. The results are summarized in~\Cref{fig:performance_gap} which illustrates the average performance gap across configurations.
+This section investigates the effectiveness of {\roomie} for the deployment of \glspl{dnn} across a varying number of \glspl{gpu}, specifically between six and eight. For each configuration, the number of \glspl{dnn} to be deployed is randomly selected from a range of 2--3$\times$ the number of \glspl{gpu}, guided by predefined options outlined in~\Cref{tab:dnn-models}. More than 1500 randomized evaluations are conducted to ensure comprehensive coverage of deployment scenarios. In each evaluation, all feasible deployment permutations are thoroughly assessed to determine the configuration that results in the minimal average performance drop, defined as the optimal baseline. Both {\roomie} and Usher are then applied to the same scenarios, and their absolute errors relative to the optimal are recorded. The results are summarized in~\Cref{fig:performance_gap}, which illustrates the average performance gap across configurations.
 
 The comparative analysis highlights {\roomie}'s consistent superiority in deployment accuracy across all concurrency levels. Its success in nearly 90\% of randomized trials reflects a design that is not only structurally aware but also resilient to the practical limitations of kernel-level modeling. Unlike Usher, which applies static heuristics that overlook the dynamic nature of interference, {\roomie} adapts to the complexities introduced by concurrent execution. Crucially, the residual error observed in {\roomie}'s deployments stems not from heuristic misalignment, but from the inherent challenges of profiling-based estimation. Tools such as Nsight-Compute, while indispensable for capturing fine-grained kernel behavior, introduce latency and measurement distortion that complicate performance inference. {\roomie}'s strategy, based on the analysis of isolated traces and representative overlap simulation, effectively manages these distortions without resorting to exhaustive enumeration. Moreover, as concurrency increases, {\roomie} demonstrates robustness in the face of combinatorial explosion, where kernel alignment across models creates an exponentially growing space of interference scenarios. That {\roomie} maintains bounded error under these conditions affirms its capacity to balance fidelity with scalability, offering a principled alternative to heuristics that fail to account for architectural nuance.
